@@ -233,6 +233,18 @@ body[data-tela="treino"] nav.abas { display: none; }
 
 .fim-treino > * + * { margin-top: 10px; }
 
+/* Tela "Ver treino" e figura de músculos */
+.plano-linha { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
+.plano-info > * + * { margin-top: 4px; }
+.figura { display: block; width: 96px; height: auto; }
+.figura .corpo { fill: #E4DDCB; }
+.figura .mn { fill: rgba(61, 74, 42, 0.10); }
+.figura .mp, .ponto-cor.mp { fill: var(--terra); background: var(--terra); }
+.figura .ms, .ponto-cor.ms { fill: var(--mostarda); background: var(--mostarda); }
+.figura text { font: 8px var(--texto); fill: var(--texto-sec); }
+.ponto-cor { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+.dica { font-size: 15px; border-left: 3px solid var(--mostarda); padding-left: 10px; }
+
 /* =====================================================================
    5. Progresso e gráficos
    ===================================================================== */
@@ -312,7 +324,7 @@ body[data-tela="treino"] nav.abas { display: none; }
    ===================================================================== */
 const CHAVE = 'registro-treino-v1';
 const VERSAO_DADOS = 1;
-const VERSAO_APP = '1.0.0';
+const VERSAO_APP = '1.1.0';
 const PERIODO = { inicio: '2026-11-16', fim: '2026-12-27', meta: 18 };
 const META_CINTURA = 90;
 const META_RCA = 0.5;
@@ -336,6 +348,46 @@ const EXERCICIOS_INICIAIS = [
 
 function exercicio(id, nome, treino, series, passoKg, variacoes, ordem) {
   return { id, nome, treino, series, repMin: 8, repMax: 12, passoKg, variacoes, ordem, ativo: true };
+}
+
+// Músculos trabalhados (p = principal, s = secundário) e dica de execução, por exercício
+const NOMES_MUSCULOS = {
+  peito: 'peito', ombros: 'ombros', biceps: 'bíceps', antebraco: 'antebraço', abdomen: 'abdômen',
+  quadriceps: 'quadríceps', costas: 'costas', triceps: 'tríceps', lombar: 'lombar',
+  gluteos: 'glúteos', posteriores: 'posteriores de coxa', panturrilha: 'panturrilha',
+};
+const GUIA = {
+  'leg-press': { p: ['quadriceps', 'gluteos'], s: ['posteriores'], dica: 'Pés na largura do quadril. Desça até o joelho chegar perto de 90°, sem tirar a lombar do encosto.' },
+  'supino-maquina': { p: ['peito'], s: ['ombros', 'triceps'], dica: 'Pegador na linha do peito e escápulas no encosto. Empurre sem travar os cotovelos.' },
+  'remada-baixa': { p: ['costas'], s: ['biceps', 'ombros'], dica: 'Peito alto. Puxe até o abdômen levando os cotovelos para trás, sem balançar o tronco.' },
+  'flexora': { p: ['posteriores'], s: ['panturrilha'], dica: 'Joelho alinhado ao eixo da máquina. Dobre até o fim e volte devagar.' },
+  'rosca-alternada': { p: ['biceps'], s: ['antebraco'], dica: 'Cotovelos junto ao corpo. Suba girando a palma para cima, sem balançar.' },
+  'agachamento-goblet': { p: ['quadriceps', 'gluteos'], s: ['posteriores', 'abdomen', 'lombar'], dica: 'Halter junto ao peito, pés um pouco abertos. Desça com o tronco alto.' },
+  'puxada-alta': { p: ['costas'], s: ['biceps', 'ombros'], dica: 'Pegada um pouco mais aberta que os ombros. Puxe a barra até o alto do peito.' },
+  'banco-lombar': { p: ['lombar', 'gluteos'], s: ['posteriores'], dica: 'Quadril apoiado na borda. Desça com a coluna neutra e suba até alinhar o corpo.' },
+  'cadeira-extensora': { p: ['quadriceps'], s: [], dica: 'Joelho alinhado ao eixo. Estenda por completo e segure um instante em cima.' },
+  'rosca-b': { p: ['biceps'], s: ['antebraco'], dica: 'Cotovelos parados ao lado do corpo. Suba sem jogar o tronco para trás.' },
+  'panturrilha': { p: ['panturrilha'], s: [], dica: 'Desça o calcanhar até alongar bem e suba o máximo na ponta dos pés.' },
+};
+// Para exercícios criados depois: reconhece pelo nome
+const GUIA_POR_NOME = [
+  [/tr[ií]ceps|franc[eê]s/i, { p: ['triceps'], s: [] }],
+  [/rosca/i, { p: ['biceps'], s: ['antebraco'] }],
+  [/panturrilha/i, { p: ['panturrilha'], s: [] }],
+  [/supino|crucifixo|peck|voador|flex[aã]o de bra/i, { p: ['peito'], s: ['ombros', 'triceps'] }],
+  [/puxada|remada|pulldown|barra fixa/i, { p: ['costas'], s: ['biceps'] }],
+  [/extensora/i, { p: ['quadriceps'], s: [] }],
+  [/flexora|stiff/i, { p: ['posteriores'], s: ['gluteos'] }],
+  [/lombar|hiperext/i, { p: ['lombar', 'gluteos'], s: ['posteriores'] }],
+  [/agach|leg|hack|afundo|passada|b[uú]lgaro/i, { p: ['quadriceps', 'gluteos'], s: ['posteriores'] }],
+  [/gl[uú]teo|p[eé]lvica|abdu/i, { p: ['gluteos'], s: ['posteriores'] }],
+  [/desenvolvimento|eleva[cç][aã]o lateral|ombro/i, { p: ['ombros'], s: ['triceps'] }],
+  [/abdominal|prancha|abd[oô]men/i, { p: ['abdomen'], s: [] }],
+];
+function guiaDe(ex) {
+  if (GUIA[ex.id]) return GUIA[ex.id];
+  const achado = GUIA_POR_NOME.find(([re]) => re.test(ex.nome));
+  return achado ? achado[1] : null;
 }
 
 // Campos digitados na medida semanal
@@ -690,6 +742,7 @@ let estado = carregar();
 const ui = {
   tela: 'hoje',
   treinoEscolhido: null,   // troca manual A/B na tela Hoje
+  planoTreino: null,       // treino aberto na tela "Ver treino"
   form: null,              // 'corrida' | 'medidas' aberto na tela Hoje
   confirmar: null,         // chave da confirmação aberta
   flash: null,             // { txt, alerta }
@@ -753,7 +806,8 @@ function telaHoje() {
       </div>
       <p class="sec-txt peq">${ultima ? `Último: treino ${ultima.treino} em ${fmtData(ultima.data)}.` : 'Nenhum treino registrado ainda.'}</p>
       <p class="peq">${esc(nomes)}</p>
-      <button class="botao grande" data-acao="iniciar-treino">Iniciar treino ${t}</button>
+      <button class="botao grande" data-acao="iniciar-treino" data-t="${t}">Iniciar treino ${t}</button>
+      <button class="botao sec cheio" data-acao="ver-plano" data-t="${t}">Ver exercícios do treino ${t}</button>
     </section>`;
   }
 
@@ -937,6 +991,73 @@ function cartaoExercicio(it, i, r) {
     <div>${series}</div>
     <button class="link" data-acao="mais-serie" data-i="${i}">Acrescentar série</button>
   </section>`;
+}
+
+/* ---------- 6.3b Ver treino (só consulta) ---------- */
+function telaPlano() {
+  const t = ui.planoTreino || ui.treinoEscolhido || proximoTreino();
+  const hoje = hojeISO();
+  let h = `<header class="topo"><button class="link" data-acao="ir" data-tela="hoje">‹ Hoje</button><h1>Treinos</h1></header>`;
+  h += avisosGerais() + flash();
+  h += `<div class="alternador" role="group" aria-label="Escolher treino" style="margin-bottom:12px">
+    ${['A', 'B'].map(x => `<button class="${x === t ? 'sel' : ''}" data-acao="plano-treino" data-t="${x}" aria-pressed="${x === t}">Treino ${x}</button>`).join('')}
+  </div>`;
+  h += exerciciosDoTreino(t).map(ex => cartaoPlano(ex, hoje)).join('');
+  h += estado.rascunho
+    ? `<button class="botao grande" data-acao="ir" data-tela="treino">Continuar treino ${estado.rascunho.treino}</button>`
+    : `<button class="botao grande" data-acao="iniciar-treino" data-t="${t}">Iniciar treino ${t}</button>`;
+  return h;
+}
+
+function cartaoPlano(ex, hoje) {
+  const g = guiaDe(ex);
+  const ult = ultimaVez(ex.id, hoje, null);
+  const lista = ms => ms.map(m => NOMES_MUSCULOS[m]).join(', ');
+  return `<section class="cartao">
+    <div class="plano-linha">
+      ${g ? figuraMusculos(g) : '<span></span>'}
+      <div class="plano-info">
+        <h2>${esc(ex.nome)}</h2>
+        <p class="sec-txt peq">${ex.series} séries · ${ex.repMin}–${ex.repMax} rep${ex.variacoes.length ? ' · ' + esc(ex.variacoes.join(' ou ')) : ''}</p>
+        <p class="peq">${ult ? `Última vez: <span class="num">${ult.item.series.map(s => `${fmtKg(s.kg)}×${s.reps}`).join(' · ')}</span>` : 'Ainda sem registro.'}</p>
+        ${deveSubir(ex, ult) ? '<p class="subir"><span class="selo">Subir carga</span></p>' : ''}
+        ${g ? `<p class="peq"><span class="ponto-cor mp"></span>${lista(g.p)}${g.s.length ? `<br><span class="ponto-cor ms"></span>${lista(g.s)}` : ''}</p>` : ''}
+      </div>
+    </div>
+    ${g && g.dica ? `<p class="dica">${esc(g.dica)}</p>` : ''}
+  </section>`;
+}
+
+// Corpo de frente e de costas; músculos principais em terra, secundários em mostarda
+function figuraMusculos(g) {
+  const cor = m => (g.p.includes(m) ? 'mp' : g.s.includes(m) ? 'ms' : 'mn');
+  const par = (m, cx, cy, rx, ry) => `<ellipse class="${cor(m)}" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/><ellipse class="${cor(m)}" cx="${60 - cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`;
+  const corpo = `<g class="corpo">
+    <circle cx="30" cy="10" r="7.5"/><rect x="27" y="16" width="6" height="6"/>
+    <path d="M17,23 Q30,19 43,23 Q46,24 46,28 L43,64 Q30,69 17,64 L14,28 Q14,24 17,23 Z"/>
+    <rect x="8" y="24" width="8" height="26" rx="4"/><rect x="44" y="24" width="8" height="26" rx="4"/>
+    <rect x="7" y="49" width="7" height="25" rx="3.5"/><rect x="46" y="49" width="7" height="25" rx="3.5"/>
+    <circle cx="10.5" cy="77" r="3"/><circle cx="49.5" cy="77" r="3"/>
+    <rect x="18" y="63" width="11.5" height="38" rx="5.5"/><rect x="30.5" y="63" width="11.5" height="38" rx="5.5"/>
+    <rect x="19" y="99" width="9.5" height="27" rx="4.5"/><rect x="31.5" y="99" width="9.5" height="27" rx="4.5"/>
+    <ellipse cx="23.5" cy="127.5" rx="5" ry="2.5"/><ellipse cx="36.5" cy="127.5" rx="5" ry="2.5"/>
+  </g>`;
+  const frente = corpo
+    + par('ombros', 15.5, 27, 4.5, 4) + par('peito', 24, 32, 6.5, 5)
+    + par('biceps', 11.8, 37, 2.8, 7.5) + par('antebraco', 10.5, 61, 2.6, 8)
+    + `<rect class="${cor('abdomen')}" x="25" y="40" width="10" height="21" rx="3"/>`
+    + par('quadriceps', 23.8, 82, 4.5, 13);
+  const costas = corpo
+    + `<path class="${cor('costas')}" d="M24,22 L36,22 L30,31 Z"/>`
+    + `<path class="${cor('costas')}" d="M19,28 L29,31 L29,49 L21,51 Q17.5,40 19,28 Z"/><path class="${cor('costas')}" d="M41,28 L31,31 L31,49 L39,51 Q42.5,40 41,28 Z"/>`
+    + par('ombros', 15.5, 27, 4.5, 4) + par('triceps', 11.8, 37, 2.8, 7.5)
+    + `<rect class="${cor('lombar')}" x="24" y="52" width="12" height="10" rx="3"/>`
+    + par('gluteos', 24.5, 69, 5.5, 5) + par('posteriores', 23.8, 87, 4.3, 11) + par('panturrilha', 23.8, 109, 3.6, 8);
+  const rotulo = `Músculos: ${g.p.map(m => NOMES_MUSCULOS[m]).join(', ')}`;
+  return `<svg class="figura" viewBox="0 0 126 142" role="img" aria-label="${esc(rotulo)}">
+    <g>${frente}</g><g transform="translate(66 0)">${costas}</g>
+    <text x="30" y="140" text-anchor="middle">frente</text><text x="96" y="140" text-anchor="middle">costas</text>
+  </svg>`;
 }
 
 /* ---------- 6.4 Progresso ---------- */
@@ -1438,7 +1559,9 @@ const ACOES = {
 
   // Hoje
   'escolher-treino': d => { ui.treinoEscolhido = d.t; },
-  'iniciar-treino': () => { novoRascunho(ui.treinoEscolhido || proximoTreino()); ui.treinoEscolhido = null; salvar(); ir('treino'); },
+  'iniciar-treino': d => { novoRascunho(d.t || ui.treinoEscolhido || proximoTreino()); ui.treinoEscolhido = null; salvar(); ir('treino'); },
+  'ver-plano': d => { ui.planoTreino = d.t; ir('plano'); },
+  'plano-treino': d => { ui.planoTreino = d.t; },
   'pilates-hoje': () => { const h = hojeISO(); if (!estado.pilates.includes(h)) { estado.pilates.push(h); estado.pilates.sort(); salvar(); } },
   'pilates-desfazer': () => { estado.pilates = estado.pilates.filter(x => x !== hojeISO()); salvar(); },
   'abrir-form': d => { ui.form = d.f; },
@@ -1668,7 +1791,7 @@ function salvarAltura(dados, id, erro) {
 /* =====================================================================
    10. Rotas e desenho da tela
    ===================================================================== */
-const TELAS = { hoje: telaHoje, treino: telaTreino, progresso: telaProgresso, historico: telaHistorico, config: telaConfig };
+const TELAS = { hoje: telaHoje, plano: telaPlano, treino: telaTreino, progresso: telaProgresso, historico: telaHistorico, config: telaConfig };
 
 function ir(tela) {
   if (location.hash.slice(1) === tela) { lerRota(); return; }
@@ -1690,7 +1813,7 @@ function render() {
   document.body.dataset.tela = ui.tela;
   document.getElementById('app').innerHTML = TELAS[ui.tela]();
   document.querySelectorAll('nav.abas button').forEach(b => {
-    const ativo = b.dataset.tela === ui.tela;
+    const ativo = b.dataset.tela === (ui.tela === 'plano' ? 'hoje' : ui.tela);
     b.classList.toggle('ativo', ativo);
     if (ativo) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
