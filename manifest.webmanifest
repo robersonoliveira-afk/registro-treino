@@ -1,0 +1,17 @@
+{
+  "name": "Registro de treino",
+  "short_name": "Treino",
+  "description": "Cargas, repetições, corrida, Pilates e medidas.",
+  "lang": "pt-BR",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F0E6",
+  "theme_color": "#3D4A2A",
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
