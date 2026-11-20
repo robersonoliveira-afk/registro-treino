@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#3D4A2A">
+<meta name="theme-color" content="#0B4F55">
 <title>Registro de treino</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icone-192.png">
@@ -18,16 +18,18 @@
    ===================================================================== */
 :root {
   color-scheme: light;
-  --papel: #F4F0E6;
-  --cartao: #FBF9F3;
-  --oliva: #3D4A2A;
-  --terra: #A8552E;
-  --mostarda: #B89233;
-  --texto-sec: #5E6650;
-  --linha: rgba(61, 74, 42, 0.16);
-  --oliva-fundo: rgba(61, 74, 42, 0.08);
-  --terra-fundo: rgba(168, 85, 46, 0.10);
-  --mostarda-fundo: rgba(184, 146, 51, 0.18);
+  /* Paleta: verde-azulado (cor principal, texto), coral (ação e alerta), âmbar (destaque).
+     Os nomes antigos das variáveis ficaram para não mexer no resto do código. */
+  --papel: #F2F6F6;
+  --cartao: #FFFFFF;
+  --oliva: #0B4F55;
+  --terra: #C4461F;
+  --mostarda: #E9A23B;
+  --texto-sec: #4E6569;
+  --linha: rgba(11, 79, 85, 0.15);
+  --oliva-fundo: rgba(11, 79, 85, 0.07);
+  --terra-fundo: rgba(196, 70, 31, 0.09);
+  --mostarda-fundo: rgba(233, 162, 59, 0.20);
 
   --titulo: 'Fraunces', Georgia, 'Times New Roman', serif;
   --texto: 'IBM Plex Sans', system-ui, -apple-system, Roboto, 'Segoe UI', sans-serif;
@@ -222,6 +224,23 @@ body[data-tela="treino"] nav.abas { display: none; }
 .serie .folga .rot { font-size: 13px; color: var(--texto-sec); margin-right: 2px; }
 .serie .folga .chip { min-width: 30px; min-height: 36px; padding: 0; font-family: var(--mono); }
 .serie .concluir { grid-area: feita; min-height: 46px; padding: 0 8px; }
+.serie.sem-carga { grid-template-areas: "n reps feita"; }
+.selo.principal { background: var(--oliva); font-size: 12px; padding: 1px 8px; vertical-align: 2px; }
+.fase { font-size: 14px; color: var(--texto-sec); }
+.fase b { color: var(--terra); font-weight: 600; }
+
+/* Plano do dia e escolha de perfil */
+.dia-lista { margin: 0; padding: 0; list-style: none; }
+.dia-lista li { padding: 4px 0; font-weight: 500; }
+.semana-tab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.semana-tab td { padding: 6px 4px; border-top: 1px solid var(--linha); vertical-align: top; }
+.semana-tab td:first-child { font-family: var(--mono); color: var(--texto-sec); width: 44px; }
+.semana-tab tr.hoje td { font-weight: 600; color: var(--terra); }
+.perfil-opcao { display: block; width: 100%; text-align: left; padding: 16px; margin-bottom: 12px;
+  border: 2px solid var(--oliva); border-radius: var(--raio); background: var(--cartao); }
+.perfil-opcao strong { display: block; font-family: var(--titulo); font-size: 20px; }
+.perfil-opcao span { color: var(--texto-sec); font-size: 15px; }
+body[data-tela="escolha"] nav.abas { display: none; }
 
 .stepper { display: grid; grid-template-columns: 40px 1fr 40px; height: var(--toque);
   border: 1.5px solid var(--oliva); border-radius: 8px; overflow: hidden; background: #fff; }
@@ -237,8 +256,8 @@ body[data-tela="treino"] nav.abas { display: none; }
 .plano-linha { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
 .plano-info > * + * { margin-top: 4px; }
 .figura { display: block; width: 96px; height: auto; }
-.figura .corpo { fill: #E4DDCB; }
-.figura .mn { fill: rgba(61, 74, 42, 0.10); }
+.figura .corpo { fill: #DCE5E5; }
+.figura .mn { fill: rgba(11, 79, 85, 0.10); }
 .figura .mp, .ponto-cor.mp { fill: var(--terra); background: var(--terra); }
 .figura .ms, .ponto-cor.ms { fill: var(--mostarda); background: var(--mostarda); }
 .figura text { font: 8px var(--texto); fill: var(--texto-sec); }
@@ -322,17 +341,16 @@ body[data-tela="treino"] nav.abas { display: none; }
 /* =====================================================================
    1. Constantes e plano inicial
    ===================================================================== */
-const CHAVE = 'registro-treino-v1';
+const CHAVE_PERFIL = 'registro-treino-perfil';
 const VERSAO_DADOS = 1;
-const VERSAO_APP = '1.1.0';
-const PERIODO = { inicio: '2026-11-16', fim: '2026-12-27', meta: 18 };
+const VERSAO_APP = '1.2.0';
 const META_CINTURA = 90;
 const META_RCA = 0.5;
 const META_VISCERAL = 9;
 const DIAS_ALERTA_BACKUP = 7;
 
 // id, nome, treino (A, B ou AB = nos dois), séries, passo de carga, variações, ordem
-const EXERCICIOS_INICIAIS = [
+const EXERCICIOS_P1 = [
   exercicio('leg-press', 'Leg press', 'A', 3, 2.5, [], 1),
   exercicio('supino-maquina', 'Supino máquina', 'A', 3, 2.5, [], 2),
   exercicio('remada-baixa', 'Remada baixa', 'A', 3, 2.5, [], 3),
@@ -349,6 +367,124 @@ const EXERCICIOS_INICIAIS = [
 function exercicio(id, nome, treino, series, passoKg, variacoes, ordem) {
   return { id, nome, treino, series, repMin: 8, repMax: 12, passoKg, variacoes, ordem, ativo: true };
 }
+
+// Plano 1-2-3: as fases sobem a carga sozinhas, contadas a partir do início do plano
+const FASES_PRINCIPAL = [
+  { semana: 1, series: 3, repMin: 8, repMax: 10 },
+  { semana: 5, series: 4, repMin: 6, repMax: 8 },
+  { semana: 9, series: 4, repMin: 5, repMax: 6 },
+];
+const FASES_SALTOS = [
+  { semana: 1, series: 3, repMin: 10, repMax: 10 },
+  { semana: 3, series: 4, repMin: 10, repMax: 10 },
+  { semana: 5, series: 5, repMin: 10, repMax: 10 },
+];
+// id, nome, treino (1, 2, 3 ou AB = em todos), séries, rep mín., rep máx., passo, ordem, extras
+function ex2(id, nome, treino, series, repMin, repMax, passoKg, ordem, extra = {}) {
+  return { id, nome, treino, series, repMin, repMax, passoKg, variacoes: [], ordem, ativo: true, ...extra };
+}
+const EXERCICIOS_P2 = [
+  ex2('saltos', 'Saltos', 'AB', 3, 10, 10, 1, 0, { semCarga: true, fases: FASES_SALTOS, ativo: false }),
+  ex2('hack', 'Hack articulado', '1', 3, 8, 10, 2.5, 1, { principal: true, fases: FASES_PRINCIPAL }),
+  ex2('supino-reto-halteres', 'Supino reto com halteres', '1', 3, 8, 10, 1, 2),
+  ex2('remada-curvada', 'Remada curvada pronada', '1', 3, 8, 10, 1, 3),
+  ex2('afundo', 'Afundo ou subida no banco', '1', 3, 8, 10, 1, 4, { variacoes: ['Afundo', 'Subida no banco'] }),
+  ex2('panturrilha', 'Panturrilha', '1', 3, 10, 12, 2.5, 5),
+  ex2('prancha', 'Prancha', '1', 3, 20, 40, 1, 6, { semCarga: true, un: 's' }),
+  ex2('stiff', 'Stiff com barra', '2', 3, 8, 10, 2, 1, { principal: true, fases: FASES_PRINCIPAL }),
+  ex2('elevacao-pelvica', 'Elevação pélvica com barra', '2', 4, 6, 10, 2.5, 2),
+  ex2('agachamento-goblet', 'Agachamento goblet', '2', 3, 8, 10, 1, 3),
+  ex2('serrote', 'Serrote', '2', 3, 8, 10, 1, 4),
+  ex2('flexora', 'Mesa flexora', '2', 3, 10, 12, 2.5, 5),
+  ex2('prancha-lateral', 'Prancha lateral', '2', 3, 15, 30, 1, 6, { semCarga: true, un: 's' }),
+  ex2('remada-baixa', 'Remada baixa na polia', '3', 3, 10, 12, 2.5, 1),
+  ex2('paralelas', 'Paralelas na máquina', '3', 3, 10, 12, 2.5, 2, { variacoes: ['Paralelas', 'Tríceps na polia'] }),
+  ex2('supino-maquina', 'Supino', '3', 3, 10, 12, 2.5, 3, { variacoes: ['Máquina', 'Flexão inclinada'] }),
+  ex2('rosca-alternada', 'Rosca alternada', '3', 3, 10, 12, 1, 4),
+  ex2('cadeira-extensora', 'Cadeira extensora', '3', 3, 10, 12, 2.5, 5),
+  ex2('abdutora', 'Abdutora', '3', 2, 12, 15, 2.5, 6),
+  ex2('carregamento', 'Carregar halteres caminhando', '3', 3, 30, 30, 1, 7, { un: 'm' }),
+  ex2('perdigueiro', 'Perdigueiro', '3', 3, 8, 8, 1, 8, { semCarga: true }),
+  ex2('rotacao-cross', 'Rotação no cross (manguito)', 'AB', 3, 10, 12, 1, 101),
+];
+
+const MEDIDAS_P1 = [
+  { k: 'pesoKg', rotulo: 'Peso', un: 'kg', casas: 2, obrig: true, max: 300 },
+  { k: 'gorduraPct', rotulo: 'Gordura', un: '%', casas: 1, max: 75 },
+  { k: 'visceral', rotulo: 'Gordura visceral', un: 'índice', casas: 0, max: 60 },
+  { k: 'musculoKg', rotulo: 'Músculo', un: 'kg', casas: 2, max: 200 },
+  { k: 'cinturaCm', rotulo: 'Cintura (umbigo)', un: 'cm', casas: 1, max: 250 },
+];
+const MEDIDAS_P2 = [
+  { k: 'energia', rotulo: 'Energia da semana', un: '0 a 10', casas: 0, max: 10 },
+  { k: 'pesoKg', rotulo: 'Peso', un: 'kg', casas: 1, max: 300 },
+  { k: 'cinturaCm', rotulo: 'Barriga (umbigo)', un: 'cm', casas: 1, max: 250 },
+];
+
+const PERFIS = {
+  p1: {
+    rotulo: 'Plano A/B',
+    descricao: 'Treinos A e B, corrida, Pilates e bioimpedância semanal.',
+    chave: 'registro-treino-v1',
+    arquivo: 'registro-treino',
+    treinos: ['A', 'B'],
+    nomesTreino: {},
+    periodo: { inicio: '2026-11-16', fim: '2026-12-27', meta: 18 },
+    marcas: [['pilates', 'Pilates']],
+    campos: MEDIDAS_P1,
+    diaMedida: 1,
+    tituloMedida: 'Medidas da semana',
+    textoMedida: 'Em jejum, depois de ir ao banheiro e antes do treino. Só o peso é obrigatório.',
+    lembrete: ['Segunda: dia de medidas', 'Em jejum, depois de ir ao banheiro e antes do treino.'],
+    exercicios: EXERCICIOS_P1,
+    medidasIniciais: [
+      { id: 'm-2026-11-15', data: '2026-11-15', pesoKg: 79.80, gorduraPct: 24.1, visceral: 12,
+        musculoKg: 57.43, cinturaCm: 97.0, obs: 'medida inicial' },
+    ],
+    config: { descansoS: 90, alturaCm: 180, telaAcesa: true },
+    semana: null,
+  },
+  p2: {
+    rotulo: 'Plano 1-2-3',
+    descricao: 'Treinos 1, 2 e 3 com fases de carga, saltos, aulas da semana e registro de energia.',
+    chave: 'registro-treino-p2-v1',
+    arquivo: 'registro-treino-plano123',
+    treinos: ['1', '2', '3'],
+    nomesTreino: { '1': 'Pesado: pernas e empurrar', '2': 'Pesado: quadril e puxar', '3': 'Moderado: membros superiores' },
+    treinoDoDia: { 1: '1', 4: '2', 5: '3' },
+    periodo: null,
+    marcas: [['yoga', 'Yoga'], ['bike', 'Bike'], ['pilates', 'Pilates'], ['jump', 'Jump'], ['rpg', 'RPG']],
+    campos: MEDIDAS_P2,
+    diaMedida: 0,
+    tituloMedida: 'Registro da semana',
+    textoMedida: 'Energia toda semana. Peso e barriga uma vez por mês, de manhã, em jejum, sempre no mesmo ponto da fita.',
+    lembrete: ['Domingo: nota da semana', 'Dê uma nota de 0 a 10 para a sua energia nesta semana.'],
+    exercicios: EXERCICIOS_P2,
+    medidasIniciais: [],
+    config: { descansoS: 120, alturaCm: null, telaAcesa: true },
+    semana: {
+      1: { itens: ['Musculação: treino 1 (pesado)'], dica: 'Treine com algo no estômago. Depois, uma refeição com 20 a 30 g de proteína em até 2 horas.' },
+      2: { itens: ['Yoga 8h', 'Bike 9h', 'RPG 13h'], dica: 'Lanche leve antes das 8h e refeição com proteína depois da bike. Almoço completo.' },
+      3: { itens: ['Pilates 8h', 'Jump 18h'], dica: 'Lanche reforçado às 16h30, com carboidrato e proteína, antes do jump.' },
+      4: { itens: ['Musculação: treino 2 (pesado)'], dica: 'Treine com algo no estômago. Depois, uma refeição com 20 a 30 g de proteína em até 2 horas.' },
+      5: { itens: ['Musculação: treino 3 (moderado)'], dica: 'Pernas leves hoje: amanhã tem corrida.' },
+      6: { itens: ['Corrida, 30 a 45 min'], dica: 'Café leve 30 a 60 minutos antes. Ritmo de conversa na maior parte do tempo.' },
+      0: { itens: ['Descanso'], dica: 'Dia de dar a nota de energia da semana.' },
+    },
+  },
+};
+
+// Perfil deste aparelho. Quem já tinha dados (Plano A/B) continua nele sem precisar escolher.
+function lerPerfil() {
+  try {
+    const p = localStorage.getItem(CHAVE_PERFIL);
+    if (PERFIS[p]) return p;
+    if (localStorage.getItem(PERFIS.p1.chave)) { localStorage.setItem(CHAVE_PERFIL, 'p1'); return 'p1'; }
+  } catch (e) {}
+  return null;
+}
+let perfilId = lerPerfil();
+let PERFIL = perfilId ? PERFIS[perfilId] : null;
 
 // Músculos trabalhados (p = principal, s = secundário) e dica de execução, por exercício
 const NOMES_MUSCULOS = {
@@ -368,6 +504,21 @@ const GUIA = {
   'cadeira-extensora': { p: ['quadriceps'], s: [], dica: 'Joelho alinhado ao eixo. Estenda por completo e segure um instante em cima.' },
   'rosca-b': { p: ['biceps'], s: ['antebraco'], dica: 'Cotovelos parados ao lado do corpo. Suba sem jogar o tronco para trás.' },
   'panturrilha': { p: ['panturrilha'], s: [], dica: 'Desça o calcanhar até alongar bem e suba o máximo na ponta dos pés.' },
+  'saltos': { p: ['quadriceps', 'gluteos', 'panturrilha'], s: ['posteriores'], dica: 'Saltos baixos no lugar, com os dois pés, sempre no chão firme. Aterrisse macio, com os joelhos levemente dobrados. Anote quantos saltos fez em cada série. Só depois da liberação médica.' },
+  'hack': { p: ['quadriceps', 'gluteos'], s: ['posteriores'], dica: 'Costas apoiadas e pés na largura do quadril. Desça com controle e suba empurrando o chão. Se as almofadas incomodarem a nuca, troque por leg press ou goblet.' },
+  'supino-reto-halteres': { p: ['peito'], s: ['ombros', 'triceps'], dica: 'Escápulas apoiadas no banco. Desça os halteres até a linha do peito e empurre sem travar os cotovelos.' },
+  'remada-curvada': { p: ['costas'], s: ['biceps', 'ombros', 'lombar'], dica: 'Quadril para trás e coluna neutra. Puxe os halteres em direção ao umbigo, cotovelos junto ao corpo.' },
+  'afundo': { p: ['quadriceps', 'gluteos'], s: ['posteriores'], dica: 'Passo largo e tronco alto. Desça até o joelho de trás chegar perto do chão. Na subida no banco, empurre com a perna de cima. Anote a carga de cada mão.' },
+  'prancha': { p: ['abdomen'], s: ['ombros', 'lombar'], dica: 'Cotovelos sob os ombros, corpo alinhado da cabeça aos pés, pescoço neutro olhando para o chão. Anote os segundos.' },
+  'stiff': { p: ['posteriores', 'gluteos'], s: ['lombar'], dica: 'Joelhos levemente dobrados. Leve o quadril para trás com a coluna neutra e a barra perto das pernas. Suba contraindo os glúteos. Técnica antes da carga.' },
+  'elevacao-pelvica': { p: ['gluteos'], s: ['posteriores'], dica: 'Costas apoiadas no banco, barra sobre o quadril, com proteção. Suba até alinhar tronco e coxas, sem arquear a lombar.' },
+  'serrote': { p: ['costas'], s: ['biceps'], dica: 'Mão e joelho apoiados no banco, coluna neutra. Puxe o halter em direção ao quadril.' },
+  'prancha-lateral': { p: ['abdomen'], s: ['ombros'], dica: 'Cotovelo sob o ombro, quadril alto e corpo alinhado. Anote os segundos de cada lado.' },
+  'paralelas': { p: ['triceps', 'peito'], s: ['ombros'], dica: 'Ombros longe das orelhas. Desça só até onde o ombro ficar confortável. Sem liberação da fisioterapia, use a variação tríceps na polia.' },
+  'abdutora': { p: ['gluteos'], s: [], dica: 'Tronco firme. Abra as pernas com controle e volte devagar.' },
+  'carregamento': { p: ['antebraco'], s: ['ombros', 'costas', 'abdomen'], dica: 'Um halter em cada mão, ombros baixos, passos curtos e firmes. Só com liberação da fisioterapia. Anote os metros e a carga de cada mão.' },
+  'perdigueiro': { p: ['lombar', 'gluteos'], s: ['abdomen'], dica: 'Em quatro apoios, estenda uma perna para trás sem girar o quadril, mantendo as mãos no chão. O braço só entra com liberação da fisioterapia.' },
+  'rotacao-cross': { p: ['ombros'], s: [], dica: 'Exercício de manguito orientado pela fisioterapia: cotovelo junto ao corpo, dobrado a 90°. Ajuste séries e carga em Config ao que foi prescrito.' },
 };
 // Para exercícios criados depois: reconhece pelo nome
 const GUIA_POR_NOME = [
@@ -390,27 +541,20 @@ function guiaDe(ex) {
   return achado ? achado[1] : null;
 }
 
-// Campos digitados na medida semanal
-const CAMPOS_MEDIDA = [
-  { k: 'pesoKg', rotulo: 'Peso', un: 'kg', casas: 2, obrig: true, max: 300 },
-  { k: 'gorduraPct', rotulo: 'Gordura', un: '%', casas: 1, max: 75 },
-  { k: 'visceral', rotulo: 'Gordura visceral', un: 'índice', casas: 0, max: 60 },
-  { k: 'musculoKg', rotulo: 'Músculo', un: 'kg', casas: 2, max: 200 },
-  { k: 'cinturaCm', rotulo: 'Cintura (umbigo)', un: 'cm', casas: 1, max: 250 },
-];
+function marcasVazias() {
+  return Object.fromEntries(PERFIL.marcas.map(([k]) => [k, []]));
+}
 
 function estadoInicial() {
   return {
     versao: VERSAO_DADOS,
-    exercicios: EXERCICIOS_INICIAIS.map(e => ({ ...e, variacoes: [...e.variacoes] })),
+    perfil: perfilId,
+    exercicios: PERFIL.exercicios.map(e => ({ ...e, variacoes: [...e.variacoes], fases: e.fases ? e.fases.map(f => ({ ...f })) : undefined })),
     sessoes: [],
     corridas: [],
-    pilates: [],
-    medidas: [
-      { id: 'm-2026-11-15', data: '2026-11-15', pesoKg: 79.80, gorduraPct: 24.1, visceral: 12,
-        musculoKg: 57.43, cinturaCm: 97.0, obs: 'medida inicial' },
-    ],
-    config: { descansoS: 90, alturaCm: 180, telaAcesa: true },
+    marcas: marcasVazias(),
+    medidas: PERFIL.medidasIniciais.map(m => ({ ...m })),
+    config: { ...PERFIL.config, inicioPlano: PERFIL.periodo ? null : segundaDaSemana(hojeISO()) },
     ultimoBackup: null,
     rascunho: null,
   };
@@ -425,7 +569,7 @@ let erroSalvar = false;
 function carregar() {
   let bruto = null;
   try {
-    bruto = localStorage.getItem(CHAVE);
+    bruto = localStorage.getItem(PERFIL.chave);
   } catch (e) {
     avisoArmazenamento = 'O navegador bloqueou o armazenamento local. Nada será salvo neste aparelho.';
     return estadoInicial();
@@ -435,7 +579,7 @@ function carregar() {
     return migrar(JSON.parse(bruto), true);
   } catch (e) {
     // Nunca sobrescreve dados ilegíveis: guarda uma cópia antes de recomeçar.
-    try { localStorage.setItem(CHAVE + '-ilegivel-' + Date.now(), bruto); } catch (_) {}
+    try { localStorage.setItem(PERFIL.chave + '-ilegivel-' + Date.now(), bruto); } catch (_) {}
     avisoArmazenamento = 'Os dados salvos estavam ilegíveis. Guardei uma cópia e recomecei. Importe o último backup em Config.';
     return estadoInicial();
   }
@@ -443,7 +587,7 @@ function carregar() {
 
 function salvar() {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(estado));
+    localStorage.setItem(PERFIL.chave, JSON.stringify(estado));
     erroSalvar = false;
   } catch (e) {
     erroSalvar = true;
@@ -456,14 +600,28 @@ function migrar(d, manterRascunho) {
   if (!Array.isArray(d.exercicios) || !Array.isArray(d.sessoes)) {
     throw new Error('o arquivo não parece um backup deste app.');
   }
+  // Backups antigos não têm perfil: são do Plano A/B
+  const perfilDoArquivo = PERFIS[d.perfil] ? d.perfil : 'p1';
+  if (perfilDoArquivo !== perfilId) {
+    throw new Error(`este backup é do ${PERFIS[perfilDoArquivo].rotulo}, e este aparelho está no ${PERFIL.rotulo}.`);
+  }
   const base = estadoInicial();
   const dataOk = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const treinosOk = [...PERFIL.treinos, 'AB'];
+  const fasesOk = f => Array.isArray(f) && f.length ? f.map(x => ({
+    semana: inteiro(x.semana, 1), series: inteiro(x.series, 3), repMin: inteiro(x.repMin, 8), repMax: inteiro(x.repMax, 12),
+  })) : undefined;
+  // Marcas de aulas: backups antigos guardavam só o Pilates, numa lista própria
+  const marcasBrutas = d.marcas && typeof d.marcas === 'object' ? d.marcas : { pilates: d.pilates || [] };
+  const marcas = marcasVazias();
+  Object.keys(marcas).forEach(k => { marcas[k] = [...new Set((marcasBrutas[k] || []).filter(dataOk))].sort(); });
   return {
     versao: VERSAO_DADOS,
+    perfil: perfilId,
     exercicios: d.exercicios.map((e, i) => ({
       id: String(e.id),
       nome: String(e.nome ?? e.id),
-      treino: ['A', 'B', 'AB'].includes(e.treino) ? e.treino : 'A',
+      treino: treinosOk.includes(String(e.treino)) ? String(e.treino) : PERFIL.treinos[0],
       series: inteiro(e.series, 3),
       repMin: inteiro(e.repMin, 8),
       repMax: inteiro(e.repMax, 12),
@@ -471,11 +629,15 @@ function migrar(d, manterRascunho) {
       variacoes: Array.isArray(e.variacoes) ? e.variacoes.map(String) : [],
       ordem: numero(e.ordem, i + 1),
       ativo: e.ativo !== false,
+      semCarga: e.semCarga === true || undefined,
+      un: ['s', 'm'].includes(e.un) ? e.un : undefined,
+      principal: e.principal === true || undefined,
+      fases: fasesOk(e.fases),
     })),
     sessoes: d.sessoes.filter(s => dataOk(s.data)).map((s, i) => ({
       id: String(s.id ?? `${s.data}-${i}`),
       data: s.data,
-      treino: s.treino === 'B' ? 'B' : 'A',
+      treino: PERFIL.treinos.includes(String(s.treino)) ? String(s.treino) : PERFIL.treinos[0],
       criadaEm: numero(s.criadaEm, i),
       itens: (s.itens || []).map(it => ({
         exercicioId: String(it.exercicioId),
@@ -495,10 +657,11 @@ function migrar(d, manterRascunho) {
       formato: c.formato === 'continua' ? 'continua' : 'alternada',
       obs: String(c.obs ?? ''),
     })),
-    pilates: [...new Set((d.pilates || []).filter(dataOk))].sort(),
+    marcas,
     medidas: (d.medidas || []).filter(m => dataOk(m.data)).map(m => ({
       id: String(m.id ?? novoId('m')),
       data: m.data,
+      energia: numeroOuNulo(m.energia),
       pesoKg: numeroOuNulo(m.pesoKg),
       gorduraPct: numeroOuNulo(m.gorduraPct),
       visceral: numeroOuNulo(m.visceral),
@@ -589,12 +752,39 @@ function exerciciosDoTreino(t) {
     .sort((a, b) => a.ordem - b.ordem);
 }
 
-// Regra 1: sugere o treino oposto ao último registrado
+// Regra 1: sugere o treino do dia (quando o plano tem dia fixo) ou o seguinte ao último registrado
 function proximoTreino() {
+  const ts = PERFIL.treinos;
+  const doDia = PERFIL.treinoDoDia && PERFIL.treinoDoDia[diaDaSemana(hojeISO())];
+  if (doDia) return doDia;
   const s = sessoesOrdenadas();
   const ultima = s[s.length - 1];
-  return !ultima ? 'A' : ultima.treino === 'A' ? 'B' : 'A';
+  if (!ultima) return ts[0];
+  const i = ts.indexOf(ultima.treino);
+  return ts[(i + 1) % ts.length];
 }
+
+// Fases de carga: semana do plano contada a partir de config.inicioPlano
+function semanaDoPlano(data) {
+  const ini = estado.config.inicioPlano;
+  if (!ini) return 1;
+  return Math.max(1, Math.floor(difDias(ini, data) / 7) + 1);
+}
+function faseDe(ex, data) {
+  if (!ex.fases || !ex.fases.length) return null;
+  const sem = semanaDoPlano(data);
+  let i = 0;
+  ex.fases.forEach((f, k) => { if (sem >= f.semana) i = k; });
+  const prox = ex.fases[i + 1];
+  return { ...ex.fases[i], n: i + 1, ate: prox ? prox.semana - 1 : null };
+}
+function prescricao(ex, data) {
+  const f = faseDe(ex, data || hojeISO());
+  return f ? { series: f.series, repMin: f.repMin, repMax: f.repMax, fase: f }
+           : { series: ex.series, repMin: ex.repMin, repMax: ex.repMax, fase: null };
+}
+function unidadeReps(ex) { return ex.un === 's' ? 's' : ex.un === 'm' ? 'm' : 'rep'; }
+function passoReps(ex) { return ex.un === 's' || ex.un === 'm' ? 5 : 1; }
 
 // Regra 2: última sessão em que o exercício foi feito (até a data, ignorando a sessão em edição)
 function ultimaVez(exId, ateData, ignorarId) {
@@ -609,15 +799,30 @@ function ultimaVez(exId, ateData, ignorarId) {
 }
 
 // Regra 3: todas as séries previstas chegaram ao topo da faixa
-function deveSubir(ex, ult) {
-  return !!ult && ult.item.series.length >= ex.series && ult.item.series.every(s => s.reps >= ex.repMax);
+// Exercícios sem carga não sobem carga; nas fases, só conta se a última vez foi na mesma fase
+function deveSubir(ex, ult, data) {
+  if (!ult || ex.semCarga) return false;
+  const p = prescricao(ex, data);
+  if (p.fase) {
+    const f = faseDe(ex, ult.sessao.data);
+    if (!f || f.n !== p.fase.n) return false;
+  }
+  return ult.item.series.length >= p.series && ult.item.series.every(s => s.reps >= p.repMax);
+}
+
+// A fase mudou desde a última vez: avisar para ajustar a carga à nova faixa
+function mudouFase(ex, ult, data) {
+  if (!ult || !ex.fases || ex.semCarga) return false;
+  const a = faseDe(ex, ult.sessao.data), b = faseDe(ex, data);
+  return !!a && !!b && a.n !== b.n;
 }
 
 // Regra 4: monta as séries pré-preenchidas de um exercício
 function montarItem(ex, data, ignorarId, salvo) {
   const ult = ultimaVez(ex.id, data, ignorarId);
-  const subir = !salvo && deveSubir(ex, ult);
-  const total = Math.max(ex.series, salvo ? salvo.series.length : 0);
+  const subir = !salvo && deveSubir(ex, ult, data);
+  const p = prescricao(ex, data);
+  const total = Math.max(p.series, salvo ? salvo.series.length : 0);
   const series = [];
   for (let i = 0; i < total; i++) {
     if (salvo && salvo.series[i]) {
@@ -626,9 +831,10 @@ function montarItem(ex, data, ignorarId, salvo) {
       continue;
     }
     const base = ult ? (ult.item.series[i] || ult.item.series[ult.item.series.length - 1]) : null;
-    let kg = base ? base.kg : 0;
-    let reps = base ? base.reps : ex.repMin;
-    if (subir) { kg = arred(kg + ex.passoKg); reps = ex.repMin; }
+    let kg = base && !ex.semCarga ? base.kg : 0;
+    let reps = base ? base.reps : p.repMin;
+    if (subir) { kg = arred(kg + ex.passoKg); reps = p.repMin; }
+    if (!subir && mudouFase(ex, ult, data)) reps = p.repMin;
     series.push({ kg, reps, folga: null, feita: false });
   }
   let variacao = salvo ? salvo.variacao : (ult ? ult.item.variacao : null);
@@ -700,8 +906,12 @@ function gravarRascunho() {
 function volumeSessao(s) { return s.itens.reduce((t, it) => t + it.series.reduce((u, se) => u + se.kg * se.reps, 0), 0); }
 function seriesSessao(s) { return s.itens.reduce((t, it) => t + it.series.length, 0); }
 
-function noPeriodo(data) { return data >= PERIODO.inicio && data <= PERIODO.fim; }
+function noPeriodo(data) { const p = PERFIL.periodo; return !!p && data >= p.inicio && data <= p.fim; }
 function treinosNoPeriodo() { return estado.sessoes.filter(s => noPeriodo(s.data)).length; }
+function nasUltimas4Semanas(data) { const d = difDias(data, hojeISO()); return d >= 0 && d < 28; }
+function marcadoHoje(k) { return (estado.marcas[k] || []).includes(hojeISO()); }
+function rotuloMarca(k) { const m = PERFIL.marcas.find(([x]) => x === k); return m ? m[1] : k; }
+function totalMarcas() { return Object.values(estado.marcas).reduce((t, l) => t + l.length, 0); }
 
 // Medidas: calculadas e média móvel de 4 semanas (janela de 28 dias)
 function medidasOrdenadas() { return [...estado.medidas].sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0)); }
@@ -724,10 +934,11 @@ function medidaAnterior(data, ignorarId) {
   return lista[lista.length - 1] || null;
 }
 
+// No dia de medida do perfil, avisa se ainda não há registro na semana (segunda a domingo)
 function lembreteMedidas(hoje) {
-  if (diaDaSemana(hoje) !== 1) return false;
-  const fim = somarDias(hoje, 6);
-  return !estado.medidas.some(m => m.data >= hoje && m.data <= fim);
+  if (diaDaSemana(hoje) !== PERFIL.diaMedida) return false;
+  const ini = segundaDaSemana(hoje), fim = somarDias(ini, 6);
+  return !estado.medidas.some(m => m.data >= ini && m.data <= fim);
 }
 
 function diasDesdeBackup() {
@@ -738,8 +949,9 @@ function diasDesdeBackup() {
 /* =====================================================================
    5. Estado da interface (não é salvo)
    ===================================================================== */
-let estado = carregar();
+let estado = PERFIL ? carregar() : null;
 const ui = {
+  verSemana: false,
   tela: 'hoje',
   treinoEscolhido: null,   // troca manual A/B na tela Hoje
   planoTreino: null,       // treino aberto na tela "Ver treino"
@@ -780,11 +992,13 @@ function telaHoje() {
 
   if (lembreteMedidas(hoje) && ui.form !== 'medidas') {
     h += `<section class="cartao alerta">
-      <h2>Segunda: dia de medidas</h2>
-      <p>Em jejum, depois de ir ao banheiro e antes do treino.</p>
-      <button class="botao terra cheio" data-acao="abrir-form" data-f="medidas">Registrar medidas</button>
+      <h2>${esc(PERFIL.lembrete[0])}</h2>
+      <p>${esc(PERFIL.lembrete[1])}</p>
+      <button class="botao terra cheio" data-acao="abrir-form" data-f="medidas">Registrar</button>
     </section>`;
   }
+
+  if (PERFIL.semana) h += cartaoDia(hoje);
 
   if (r) {
     const { feitas, total } = contarSeries(r);
@@ -800,10 +1014,8 @@ function telaHoje() {
     const nomes = exerciciosDoTreino(t).map(e => e.nome).join(', ');
     h += `<section class="cartao">
       <h2>Próximo treino</h2>
-      <div class="alternador" role="group" aria-label="Escolher treino">
-        ${['A', 'B'].map(x => `<button class="${x === t ? 'sel' : ''}" data-acao="escolher-treino" data-t="${x}" aria-pressed="${x === t}">
-          ${x}${x === sugerido ? '<small>sugerido</small>' : ''}</button>`).join('')}
-      </div>
+      ${alternadorTreinos(t, sugerido, 'escolher-treino')}
+      ${PERFIL.nomesTreino[t] ? `<p><strong>${esc(PERFIL.nomesTreino[t])}</strong></p>` : ''}
       <p class="sec-txt peq">${ultima ? `Último: treino ${ultima.treino} em ${fmtData(ultima.data)}.` : 'Nenhum treino registrado ainda.'}</p>
       <p class="peq">${esc(nomes)}</p>
       <button class="botao grande" data-acao="iniciar-treino" data-t="${t}">Iniciar treino ${t}</button>
@@ -811,25 +1023,25 @@ function telaHoje() {
     </section>`;
   }
 
-  h += cartaoPeriodo(hoje);
+  if (PERFIL.periodo) h += cartaoPeriodo(hoje);
 
-  // Atalhos
-  const pilatesHoje = estado.pilates.includes(hoje);
+  // Atalhos: corrida e medidas abrem formulário; as aulas marcam o dia com um toque
+  const feitasHoje = PERFIL.marcas.filter(([k]) => marcadoHoje(k));
   h += `<h2 class="secao-titulo">Registrar</h2>
     <div class="acoes" style="margin-bottom:12px">
       <button class="botao sec" data-acao="abrir-form" data-f="corrida">Corrida</button>
-      <button class="botao ${pilatesHoje ? '' : 'sec'}" data-acao="pilates-hoje" ${pilatesHoje ? 'disabled' : ''}>Pilates</button>
-      <button class="botao sec" data-acao="abrir-form" data-f="medidas">Medidas</button>
+      ${PERFIL.marcas.map(([k, rot]) => `<button class="botao ${marcadoHoje(k) ? '' : 'sec'}" data-acao="marcar" data-k="${k}" aria-pressed="${marcadoHoje(k)}">${esc(rot)}</button>`).join('')}
+      <button class="botao sec" data-acao="abrir-form" data-f="medidas">${PERFIL.periodo ? 'Medidas' : 'Semana'}</button>
     </div>`;
-  if (pilatesHoje) {
-    h += `<p class="peq" style="margin-bottom:12px">Pilates registrado hoje. <button class="link" data-acao="pilates-desfazer">Desfazer</button></p>`;
+  if (feitasHoje.length) {
+    h += `<p class="peq" style="margin-bottom:12px">Registrado hoje: ${esc(feitasHoje.map(([, r]) => r).join(', '))}. Toque de novo para desfazer.</p>`;
   }
   if (ui.form === 'corrida') h += formCorrida(null);
   if (ui.form === 'medidas') h += formMedidas(null);
 
   // Backup
   const dias = diasDesdeBackup();
-  const temDados = estado.sessoes.length || estado.corridas.length || estado.pilates.length || estado.medidas.length > 1;
+  const temDados = estado.sessoes.length || estado.corridas.length || totalMarcas() || estado.medidas.length > 1;
   const atrasado = dias === null ? temDados : dias > DIAS_ALERTA_BACKUP;
   h += `<section class="cartao ${atrasado ? 'alerta' : ''}">
     <p>${dias === null ? 'Nenhum backup feito ainda.' : `Último backup: ${fmtDataHora(estado.ultimoBackup)} (${dias === 0 ? 'hoje' : dias === 1 ? 'há 1 dia' : `há ${dias} dias`}).`}
@@ -839,7 +1051,38 @@ function telaHoje() {
   return h;
 }
 
+// Seletor de treino com tantos botões quantos treinos o plano tem
+function alternadorTreinos(t, sugerido, acao) {
+  const ts = PERFIL.treinos;
+  return `<div class="alternador" role="group" aria-label="Escolher treino" style="grid-template-columns:repeat(${ts.length}, 1fr)">
+    ${ts.map(x => `<button class="${x === t ? 'sel' : ''}" data-acao="${acao}" data-t="${x}" aria-pressed="${x === t}">
+      ${x}${x === sugerido ? '<small>sugerido</small>' : ''}</button>`).join('')}
+  </div>`;
+}
+
+// Plano do dia (perfis com semana fixa) e a semana inteira sob demanda
+function cartaoDia(hoje) {
+  const dow = diaDaSemana(hoje);
+  const dia = PERFIL.semana[dow];
+  let h = `<section class="cartao">
+    <h2>Hoje</h2>
+    <ul class="dia-lista">${dia.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+    <p class="dica">${esc(dia.dica)}</p>`;
+  const saltos = exPorId('saltos');
+  if (saltos && !saltos.ativo && /Musculação/.test(dia.itens.join(' '))) {
+    h += `<p class="sec-txt peq">Saltos: reative em Config, nos arquivados, depois da liberação médica.</p>`;
+  }
+  if (ui.verSemana) {
+    const ordem = [1, 2, 3, 4, 5, 6, 0];
+    h += `<table class="semana-tab">${ordem.map(d => `<tr class="${d === dow ? 'hoje' : ''}"><td>${DIAS[d]}</td><td>${esc(PERFIL.semana[d].itens.join(' · '))}</td></tr>`).join('')}</table>`;
+  }
+  h += `<button class="link" data-acao="ver-semana">${ui.verSemana ? 'Esconder a semana' : 'Ver a semana'}</button>
+  </section>`;
+  return h;
+}
+
 function cartaoPeriodo(hoje) {
+  const PERIODO = PERFIL.periodo;
   const n = treinosNoPeriodo();
   const pct = Math.min(100, n / PERIODO.meta * 100);
   let quando;
@@ -879,15 +1122,15 @@ function formCorrida(reg) {
 function formMedidas(reg) {
   const m = reg || { data: hojeISO(), obs: '' };
   const ant = medidaAnterior(m.data, reg ? reg.id : null);
-  const linhas = CAMPOS_MEDIDA.map(c => `
+  const linhas = PERFIL.campos.map(c => `
     <div class="medida-linha">
       <label for="f-${c.k}">${c.rotulo} <span class="sec-txt peq">(${c.un})</span></label>
       <input id="f-${c.k}" name="${c.k}" inputmode="decimal" value="${m[c.k] != null ? fmtN(m[c.k], c.casas).replace(/\./g, '') : ''}" ${c.obrig ? 'required' : ''} autocomplete="off">
       <span class="ref">anterior<b>${ant && ant[c.k] != null ? fmtN(ant[c.k], c.casas) : '—'}</b></span>
     </div>`).join('');
   return `<form class="cartao" data-form="medidas" data-id="${reg ? esc(reg.id) : ''}" novalidate>
-    <h2>${reg ? 'Editar medidas' : 'Medidas da semana'}</h2>
-    <p class="sec-txt peq">Em jejum, depois de ir ao banheiro e antes do treino. Só o peso é obrigatório.</p>
+    <h2>${reg ? 'Editar registro' : esc(PERFIL.tituloMedida)}</h2>
+    <p class="sec-txt peq">${esc(PERFIL.textoMedida)}</p>
     <label class="campo"><span>Data</span><input type="date" name="data" value="${m.data}" required></label>
     ${linhas}
     <p class="sec-txt peq">${ant ? `Anterior: ${fmtData(ant.data)}.` : ''}</p>
@@ -934,29 +1177,37 @@ function telaTreino() {
 }
 
 function blocoDescanso(r) {
-  const chips = [90, 120].map(s => `<button class="chip ${r.descansoS === s ? 'sel' : ''}" data-acao="descanso-tempo" data-v="${s}" aria-pressed="${r.descansoS === s}">${s} s</button>`).join('');
+  const chips = TEMPOS_DESCANSO.map(s => `<button class="chip ${r.descansoS === s ? 'sel' : ''}" data-acao="descanso-tempo" data-v="${s}" aria-pressed="${r.descansoS === s}">${s} s</button>`).join('');
   const direita = r.descansoFim
     ? `<span id="cronometro" class="cron num" role="timer"></span><button class="botao sec" data-acao="descanso-parar">Parar</button>`
-    : `<button class="botao sec" data-acao="descanso-iniciar" style="margin-left:auto">Iniciar descanso</button>`;
+    : `<button class="botao sec" data-acao="descanso-iniciar" style="margin-left:auto" aria-label="Iniciar descanso">Iniciar</button>`;
   return `<span class="sec-txt peq">Descanso</span>${chips}${direita}`;
 }
 
 function cartaoExercicio(it, i, r) {
   const ex = exPorId(it.exercicioId) || { repMin: 8, repMax: 12, series: it.series.length, variacoes: [], passoKg: 2.5 };
   const ult = ultimaVez(it.exercicioId, r.data, r.editandoId);
-  const subir = deveSubir(ex, ult);
+  const subir = deveSubir(ex, ult, r.data);
+  const p = prescricao(ex, r.data);
+  const un = unidadeReps(ex);
+  const nomeUn = un === 's' ? 'segundos' : un === 'm' ? 'metros' : 'repetições';
 
   const ref = ult
     ? `Última vez · ${fmtData(ult.sessao.data)}${ult.item.variacao ? ' · ' + esc(ult.item.variacao) : ''}:
-       <span class="num">${ult.item.series.map(s => `${fmtKg(s.kg)}×${s.reps}`).join(' · ')}</span>`
-    : 'Primeira vez: defina a carga.';
+       <span class="num">${ult.item.series.map(s => textoSerie(ex, s)).join(' · ')}</span>`
+    : ex.semCarga ? 'Primeira vez.' : 'Primeira vez: defina a carga.';
 
   let aviso = '';
   if (subir) {
     aviso = `<p class="subir"><span class="selo">Subir carga</span>${it.subiu
-      ? `carga aumentada: <span class="num">+${fmtKg(ex.passoKg)} kg</span> · meta ${ex.repMin} rep`
-      : `meta ${ex.repMin} rep`}</p>`;
+      ? `carga aumentada: <span class="num">+${fmtKg(ex.passoKg)} kg</span> · meta ${p.repMin} ${un}`
+      : `meta ${p.repMin} ${un}`}</p>`;
+  } else if (mudouFase(ex, ult, r.data)) {
+    aviso = `<p class="subir"><span class="selo">Nova fase</span>agora ${p.series} × ${p.repMin}–${p.repMax}: suba a carga até caber na faixa</p>`;
   }
+  const fase = p.fase
+    ? `<p class="fase">Fase <b>${p.fase.n}</b> · semana ${semanaDoPlano(r.data)} do plano${p.fase.ate ? ` · até a semana ${p.fase.ate}` : ''}</p>`
+    : '';
 
   const variacoes = ex.variacoes.length
     ? `<div class="chips" role="group" aria-label="Variação">${ex.variacoes.map(v => `<button class="chip ${it.variacao === v ? 'sel' : ''}" data-acao="variacao" data-i="${i}" data-v="${esc(v)}" aria-pressed="${it.variacao === v}">${esc(v)}</button>`).join('')}</div>`
@@ -964,33 +1215,47 @@ function cartaoExercicio(it, i, r) {
 
   const series = it.series.map((s, j) => {
     const d = `data-i="${i}" data-s="${j}"`;
-    return `<div class="serie ${s.feita ? 'feita' : ''}">
-      <span class="n num">${j + 1}</span>
-      <div class="stepper st-kg">
+    const kg = ex.semCarga ? '' : `<div class="stepper st-kg">
         <button data-acao="kg" ${d} data-d="-1" aria-label="Menos carga, série ${j + 1}">−</button>
         <input data-campo="kg" ${d} value="${fmtKgCampo(s.kg)}" inputmode="decimal" aria-label="Carga em kg, série ${j + 1}">
         <button data-acao="kg" ${d} data-d="1" aria-label="Mais carga, série ${j + 1}">+</button>
-      </div>
-      <div class="stepper st-reps">
-        <button data-acao="reps" ${d} data-d="-1" aria-label="Menos repetições, série ${j + 1}">−</button>
-        <input data-campo="reps" ${d} value="${s.reps}" inputmode="numeric" aria-label="Repetições, série ${j + 1}">
-        <button data-acao="reps" ${d} data-d="1" aria-label="Mais repetições, série ${j + 1}">+</button>
-      </div>
-      <div class="folga" role="group" aria-label="Folga, série ${j + 1}"><span class="rot">folga</span>
+      </div>`;
+    const folga = ex.semCarga ? '' : `<div class="folga" role="group" aria-label="Folga, série ${j + 1}"><span class="rot">folga</span>
         ${[0, 1, 2, 3].map(v => `<button class="chip ${s.folga === v ? 'sel' : ''}" data-acao="folga" ${d} data-v="${v}" aria-pressed="${s.folga === v}">${v}</button>`).join('')}
+      </div>`;
+    return `<div class="serie ${s.feita ? 'feita' : ''} ${ex.semCarga ? 'sem-carga' : ''}">
+      <span class="n num">${j + 1}</span>
+      ${kg}
+      <div class="stepper st-reps">
+        <button data-acao="reps" ${d} data-d="-1" aria-label="Menos ${nomeUn}, série ${j + 1}">−</button>
+        <input data-campo="reps" ${d} value="${s.reps}" inputmode="numeric" aria-label="${nomeUn}, série ${j + 1}">
+        <button data-acao="reps" ${d} data-d="1" aria-label="Mais ${nomeUn}, série ${j + 1}">+</button>
       </div>
+      ${folga}
       <button class="botao concluir ${s.feita ? '' : 'sec'}" data-acao="feita" ${d} aria-pressed="${s.feita}">${s.feita ? 'Feita' : 'Concluir'}</button>
     </div>`;
   }).join('');
 
   return `<section class="cartao exercicio">
-    <div class="ex-cab"><h2>${esc(it.nome)}</h2><span class="faixa num">${ex.repMin}–${ex.repMax} rep</span></div>
+    <div class="ex-cab"><h2>${esc(it.nome)}${ex.principal ? ' <span class="selo principal">principal</span>' : ''}</h2><span class="faixa num">${faixaTexto(p, un)}</span></div>
+    ${fase}
     <p class="ref">${ref}</p>
     ${aviso}${variacoes}
-    <div class="series-cab"><span></span><span>carga (kg)</span><span>repetições</span></div>
+    <div class="series-cab"><span></span>${ex.semCarga ? `<span>${nomeUn}</span><span></span>` : `<span>carga (kg)</span><span>${nomeUn}</span>`}</div>
     <div>${series}</div>
     <button class="link" data-acao="mais-serie" data-i="${i}">Acrescentar série</button>
   </section>`;
+}
+
+const TEMPOS_DESCANSO = [60, 90, 120, 180];
+
+function faixaTexto(p, un) {
+  return p.repMin === p.repMax ? `${p.repMin} ${un}` : `${p.repMin}–${p.repMax} ${un}`;
+}
+// "20×8" com carga; "10" ou "30 s" sem carga
+function textoSerie(ex, s) {
+  const u = ex.un ? ' ' + ex.un : '';
+  return ex.semCarga ? `${s.reps}${u}` : `${fmtKg(s.kg)}×${s.reps}${u}`;
 }
 
 /* ---------- 6.3b Ver treino (só consulta) ---------- */
@@ -999,9 +1264,8 @@ function telaPlano() {
   const hoje = hojeISO();
   let h = `<header class="topo"><button class="link" data-acao="ir" data-tela="hoje">‹ Hoje</button><h1>Treinos</h1></header>`;
   h += avisosGerais() + flash();
-  h += `<div class="alternador" role="group" aria-label="Escolher treino" style="margin-bottom:12px">
-    ${['A', 'B'].map(x => `<button class="${x === t ? 'sel' : ''}" data-acao="plano-treino" data-t="${x}" aria-pressed="${x === t}">Treino ${x}</button>`).join('')}
-  </div>`;
+  h += `<div style="margin-bottom:12px">${alternadorTreinos(t, null, 'plano-treino')}</div>`;
+  if (PERFIL.nomesTreino[t]) h += `<p style="margin-bottom:12px"><strong>Treino ${t}: ${esc(PERFIL.nomesTreino[t])}</strong></p>`;
   h += exerciciosDoTreino(t).map(ex => cartaoPlano(ex, hoje)).join('');
   h += estado.rascunho
     ? `<button class="botao grande" data-acao="ir" data-tela="treino">Continuar treino ${estado.rascunho.treino}</button>`
@@ -1013,14 +1277,15 @@ function cartaoPlano(ex, hoje) {
   const g = guiaDe(ex);
   const ult = ultimaVez(ex.id, hoje, null);
   const lista = ms => ms.map(m => NOMES_MUSCULOS[m]).join(', ');
+  const p = prescricao(ex, hoje);
   return `<section class="cartao">
     <div class="plano-linha">
       ${g ? figuraMusculos(g) : '<span></span>'}
       <div class="plano-info">
-        <h2>${esc(ex.nome)}</h2>
-        <p class="sec-txt peq">${ex.series} séries · ${ex.repMin}–${ex.repMax} rep${ex.variacoes.length ? ' · ' + esc(ex.variacoes.join(' ou ')) : ''}</p>
-        <p class="peq">${ult ? `Última vez: <span class="num">${ult.item.series.map(s => `${fmtKg(s.kg)}×${s.reps}`).join(' · ')}</span>` : 'Ainda sem registro.'}</p>
-        ${deveSubir(ex, ult) ? '<p class="subir"><span class="selo">Subir carga</span></p>' : ''}
+        <h2>${esc(ex.nome)}${ex.principal ? ' <span class="selo principal">principal</span>' : ''}</h2>
+        <p class="sec-txt peq">${p.series} séries · ${faixaTexto(p, unidadeReps(ex))}${p.fase ? ` · fase ${p.fase.n}` : ''}${ex.variacoes.length ? ' · ' + esc(ex.variacoes.join(' ou ')) : ''}</p>
+        <p class="peq">${ult ? `Última vez: <span class="num">${ult.item.series.map(s => textoSerie(ex, s)).join(' · ')}</span>` : 'Ainda sem registro.'}</p>
+        ${deveSubir(ex, ult, hoje) ? '<p class="subir"><span class="selo">Subir carga</span></p>' : ''}
         ${g ? `<p class="peq"><span class="ponto-cor mp"></span>${lista(g.p)}${g.s.length ? `<br><span class="ponto-cor ms"></span>${lista(g.s)}` : ''}</p>` : ''}
       </div>
     </div>
@@ -1065,10 +1330,13 @@ function telaProgresso() {
   const hoje = hojeISO();
   let h = `<header class="topo"><h1>Progresso</h1></header>` + avisosGerais() + flash();
 
+  if (!PERFIL.periodo) return h + progressoSemanal() + progressoExercicios();
+
   // Academia no período
+  const PERIODO = PERFIL.periodo;
   const n = treinosNoPeriodo();
   const corridas = estado.corridas.filter(c => noPeriodo(c.data)).length;
-  const pilates = estado.pilates.filter(noPeriodo).length;
+  const pilates = (estado.marcas.pilates || []).filter(noPeriodo).length;
   h += `<section class="cartao">
     <h2>Academia</h2>
     <div class="contador"><span class="grande">${n}</span><span class="sec-txt">de ${PERIODO.meta} treinos</span></div>
@@ -1099,24 +1367,55 @@ function telaProgresso() {
   h += cartaoGrafico('rca', 'Relação cintura/altura', rca, { un: '', casas: 2, media: true, meta: { y: META_RCA, rotulo: `meta ${fmtN(META_RCA, 2)}` },
     nota: `Altura considerada: ${fmtN(estado.config.alturaCm, 0)} cm (muda em Config).` });
   h += `<p class="nota">Valores de bioimpedância variam com a hidratação. Considere a tendência de 3 a 4 semanas.</p>`;
+  return h + progressoExercicios();
+}
 
-  // Exercícios
-  h += `<h2 class="secao-titulo">Exercícios</h2>`;
+// Perfis sem período fixo: frequência das últimas 4 semanas, energia, peso e barriga
+function progressoSemanal() {
+  const treinos = estado.sessoes.filter(s => nasUltimas4Semanas(s.data)).length;
+  const corridas = estado.corridas.filter(c => nasUltimas4Semanas(c.data)).length;
+  const aulas = PERFIL.marcas.map(([k, rot]) => `${esc(rot)} <span class="num">${(estado.marcas[k] || []).filter(nasUltimas4Semanas).length}</span>`).join(' · ');
+  let h = `<section class="cartao">
+    <h2>Últimas 4 semanas</h2>
+    <div class="contador"><span class="grande">${treinos}</span><span class="sec-txt">treinos de musculação (o plano prevê 12)</span></div>
+    <div class="barra"><span style="width:${Math.min(100, treinos / 12 * 100)}%"></span></div>
+    <p class="sec-txt peq">Corridas <span class="num">${corridas}</span> · ${aulas}</p>
+    ${estado.config.inicioPlano ? `<p class="sec-txt peq">Semana ${semanaDoPlano(hojeISO())} do plano, iniciado em ${fmtData(estado.config.inicioPlano)}.</p>` : ''}
+  </section>`;
+  h += `<h2 class="secao-titulo">Semana a semana</h2>`;
+  h += cartaoResumoMedidas();
+  h += cartaoGrafico('energia', 'Energia', serieMedida(m => m.energia), { un: 'de 10', casas: 0, media: true });
+  h += cartaoGrafico('peso', 'Peso', serieMedida(m => m.pesoKg), { un: 'kg', casas: 1, media: false });
+  h += cartaoGrafico('cint', 'Barriga (umbigo)', serieMedida(m => m.cinturaCm), { un: 'cm', casas: 1, media: false });
+  h += `<p class="nota">Peso e barriga variam de um dia para o outro. Olhe a tendência de alguns meses, não uma medida isolada.</p>`;
+  return h;
+}
+
+function progressoExercicios() {
+  let h = `<h2 class="secao-titulo">Exercícios</h2>`;
   const comHistorico = new Set(estado.sessoes.flatMap(s => s.itens.map(it => it.exercicioId)));
   const opcoes = estado.exercicios.filter(e => e.ativo || comHistorico.has(e.id));
   if (!ui.exProgresso || !opcoes.some(e => e.id === ui.exProgresso)) ui.exProgresso = opcoes[0] ? opcoes[0].id : null;
   if (ui.exProgresso) {
+    const ex = exPorId(ui.exProgresso);
+    const semCarga = ex && ex.semCarga;
+    const un = ex ? unidadeReps(ex) : 'rep';
     const pontosCarga = [], pontosVolume = [];
     sessoesOrdenadas().forEach(s => {
       const it = s.itens.find(x => x.exercicioId === ui.exProgresso);
       if (!it || !it.series.length) return;
-      pontosCarga.push({ data: s.data, y: Math.max(...it.series.map(se => se.kg)) });
-      pontosVolume.push({ data: s.data, y: it.series.reduce((t, se) => t + se.kg * se.reps, 0) });
+      pontosCarga.push({ data: s.data, y: Math.max(...it.series.map(se => semCarga ? se.reps : se.kg)) });
+      pontosVolume.push({ data: s.data, y: it.series.reduce((t, se) => t + (semCarga ? se.reps : se.kg * se.reps), 0) });
     });
     h += `<label class="campo" style="margin-bottom:12px"><span>Exercício</span>
       <select data-campo="ex-progresso">${opcoes.map(e => `<option value="${esc(e.id)}" ${e.id === ui.exProgresso ? 'selected' : ''}>${esc(e.nome)}${e.ativo ? '' : ' (arquivado)'}</option>`).join('')}</select></label>`;
-    h += cartaoGrafico('carga', 'Maior carga', pontosCarga, { un: 'kg', casas: 1, media: false });
-    h += cartaoGrafico('volume', 'Volume (carga × repetições)', pontosVolume, { un: 'kg', casas: 0, media: false });
+    if (semCarga) {
+      h += cartaoGrafico('carga', 'Melhor série', pontosCarga, { un, casas: 0, media: false });
+      h += cartaoGrafico('volume', 'Total da sessão', pontosVolume, { un, casas: 0, media: false });
+    } else {
+      h += cartaoGrafico('carga', 'Maior carga', pontosCarga, { un: 'kg', casas: 1, media: false });
+      h += cartaoGrafico('volume', 'Volume (carga × repetições)', pontosVolume, { un: 'kg', casas: 0, media: false });
+    }
   }
   return h;
 }
@@ -1125,18 +1424,31 @@ function cartaoResumoMedidas() {
   const ms = medidasOrdenadas();
   if (!ms.length) return `<section class="cartao"><p class="vazio">Nenhuma medida registrada.</p></section>`;
   const ini = ms[0], ult = ms[ms.length - 1];
-  const itens = [
+  const lista = PERFIL.periodo ? [
     ['Peso', m => m.pesoKg, 'kg', 2],
     ['Massa gorda', massaGorda, 'kg', 2],
     ['Massa magra', massaMagra, 'kg', 2],
     ['Cintura', m => m.cinturaCm, 'cm', 1],
-  ].map(([rot, fn, un, casas]) => {
-    const a = fn(ini), b = fn(ult);
+  ] : [
+    ['Energia', m => m.energia, '', 0],
+    ['Peso', m => m.pesoKg, 'kg', 1],
+    ['Barriga', m => m.cinturaCm, 'cm', 1],
+  ];
+  // Plano A/B: compara a primeira e a última medida. Plano 1-2-3: peso e barriga são mensais
+  // e a energia é semanal, então cada item usa o primeiro e o último registro que têm aquele valor.
+  const itens = lista.map(([rot, fn, un, casas]) => {
+    let a, b;
+    if (PERFIL.periodo) { a = fn(ini); b = fn(ult); }
+    else {
+      const comValor = ms.filter(m => fn(m) != null);
+      a = comValor.length ? fn(comValor[0]) : null;
+      b = comValor.length ? fn(comValor[comValor.length - 1]) : null;
+    }
     return `<div><div class="rot">${rot}</div>
       <div class="val">${fmtN(b, casas)} <span class="peq">${un}</span></div>
       <div class="dif">${a != null && b != null ? fmtDif(b - a, casas) + ' ' + un : '—'}</div></div>`;
   }).join('');
-  return `<section class="cartao"><h3>Desde a medida inicial</h3>
+  return `<section class="cartao"><h3>${PERFIL.periodo ? 'Desde a medida inicial' : 'Desde o primeiro registro'}</h3>
     <p class="sec-txt peq">${fmtData(ini.data)} → ${fmtData(ult.data)}</p>
     <div class="resumo-medidas">${itens}</div></section>`;
 }
@@ -1238,17 +1550,22 @@ function registrosHistorico() {
     k: 'c:' + c.id, tipo: 'corrida', data: c.data, ordem: 0,
     titulo: 'Corrida', sub: `${fmtKg(c.min)} min · ${c.formato === 'continua' ? 'contínua' : 'corrida e caminhada'}`,
   }));
-  estado.pilates.forEach(d => lista.push({ k: 'p:' + d, tipo: 'pilates', data: d, ordem: 0, titulo: 'Pilates', sub: 'feito' }));
+  // Aulas marcadas: a chave leva o tipo e a data ("p:yoga|2026-11-24")
+  PERFIL.marcas.forEach(([tipo, rot]) => (estado.marcas[tipo] || []).forEach(d => lista.push({
+    k: `p:${tipo}|${d}`, tipo, data: d, ordem: 0, titulo: rot, sub: 'feito',
+  })));
   estado.medidas.forEach(m => lista.push({
-    k: 'm:' + m.id, tipo: 'medidas', data: m.data, ordem: 0, titulo: 'Medidas',
-    sub: [m.pesoKg != null ? fmtN(m.pesoKg, 2) + ' kg' : null, m.cinturaCm != null ? fmtN(m.cinturaCm, 1) + ' cm' : null].filter(Boolean).join(' · '),
+    k: 'm:' + m.id, tipo: 'medidas', data: m.data, ordem: 0, titulo: PERFIL.periodo ? 'Medidas' : 'Semana',
+    sub: [m.energia != null ? 'energia ' + fmtN(m.energia, 0) : null,
+      m.pesoKg != null ? fmtN(m.pesoKg, PERFIL.periodo ? 2 : 1) + ' kg' : null,
+      m.cinturaCm != null ? fmtN(m.cinturaCm, 1) + ' cm' : null].filter(Boolean).join(' · '),
   }));
   return lista.sort((a, b) => (a.data > b.data ? -1 : a.data < b.data ? 1 : b.ordem - a.ordem));
 }
 
 function telaHistorico() {
   let h = `<header class="topo"><h1>Histórico</h1></header>` + avisosGerais() + flash();
-  const filtros = [['tudo', 'Tudo'], ['academia', 'Academia'], ['corrida', 'Corrida'], ['pilates', 'Pilates'], ['medidas', 'Medidas']];
+  const filtros = [['tudo', 'Tudo'], ['academia', 'Academia'], ['corrida', 'Corrida'], ...PERFIL.marcas, ['medidas', PERFIL.periodo ? 'Medidas' : 'Semana']];
   h += `<div class="filtros" role="group" aria-label="Filtrar">${filtros.map(([v, t]) => `<button class="chip ${ui.histFiltro === v ? 'sel' : ''}" data-acao="hist-filtro" data-v="${v}" aria-pressed="${ui.histFiltro === v}">${t}</button>`).join('')}</div>`;
   const lista = registrosHistorico().filter(r => ui.histFiltro === 'tudo' || r.tipo === ui.histFiltro);
   if (!lista.length) return h + `<p class="vazio">Nada registrado ainda.</p>`;
@@ -1273,15 +1590,18 @@ function corpoRegistro(k) {
   let h = '';
   if (tipo === 's') {
     const s = estado.sessoes.find(x => x.id === id);
-    h += `<ul>${s.itens.map(it => `<li>${esc(it.nome)}${it.variacao ? ` · ${esc(it.variacao)}` : ''}
-      <span class="num">${it.series.map(se => `${fmtKg(se.kg)}×${se.reps}${se.folga != null ? ` (f${se.folga})` : ''}`).join(' · ')}</span></li>`).join('')}</ul>`;
+    h += `<ul>${s.itens.map(it => {
+      const ex = exPorId(it.exercicioId) || {};
+      return `<li>${esc(it.nome)}${it.variacao ? ` · ${esc(it.variacao)}` : ''}
+      <span class="num">${it.series.map(se => `${textoSerie(ex, se)}${se.folga != null ? ` (f${se.folga})` : ''}`).join(' · ')}</span></li>`;
+    }).join('')}</ul>`;
   } else if (tipo === 'c') {
     const c = estado.corridas.find(x => x.id === id);
     if (c.obs) h += `<p>${esc(c.obs)}</p>`;
   } else if (tipo === 'm') {
     const m = estado.medidas.find(x => x.id === id);
-    const linhas = CAMPOS_MEDIDA.map(c => [c.rotulo, m[c.k], c.un, c.casas])
-      .concat([['Massa gorda', massaGorda(m), 'kg', 2], ['Massa magra', massaMagra(m), 'kg', 2], ['Cintura/altura', relCinturaAltura(m), '', 2]]);
+    const linhas = PERFIL.campos.map(c => [c.rotulo, m[c.k], c.un, c.casas])
+      .concat(PERFIL.periodo ? [['Massa gorda', massaGorda(m), 'kg', 2], ['Massa magra', massaMagra(m), 'kg', 2], ['Cintura/altura', relCinturaAltura(m), '', 2]] : []);
     h += `<ul>${linhas.map(([r, v, un, casas]) => `<li>${r}: <b class="num">${fmtN(v, casas)}</b> ${v != null ? un : ''}</li>`).join('')}</ul>`;
     if (m.obs) h += `<p>${esc(m.obs)}</p>`;
   }
@@ -1297,20 +1617,29 @@ function corpoRegistro(k) {
 }
 
 /* ---------- 6.6 Configurações ---------- */
-const GRUPOS = [['A', 'Treino A'], ['B', 'Treino B'], ['AB', 'Nos dois treinos']];
+function grupos() {
+  return [...PERFIL.treinos.map(t => [t, `Treino ${t}`]), ['AB', PERFIL.treinos.length === 2 ? 'Nos dois treinos' : 'Em todos os treinos']];
+}
+
+function resumoExercicio(e) {
+  const p = prescricao(e, hojeISO());
+  const un = unidadeReps(e);
+  const carga = e.semCarga ? 'sem carga' : `passo ${fmtKg(e.passoKg)} kg`;
+  return `${p.series} × ${faixaTexto(p, un)}${p.fase ? ` · fase ${p.fase.n}` : ''} · ${carga}${e.variacoes.length ? ' · ' + esc(e.variacoes.join('/')) : ''}`;
+}
 
 function telaConfig() {
   let h = `<header class="topo"><h1>Configurações</h1></header>` + avisosGerais() + flash();
 
   // Exercícios
   h += `<h2 class="secao-titulo">Exercícios</h2>`;
-  GRUPOS.forEach(([t, rotulo]) => {
+  grupos().forEach(([t, rotulo]) => {
     const lista = estado.exercicios.filter(e => e.ativo && e.treino === t).sort((a, b) => a.ordem - b.ordem);
     h += `<section class="cartao"><h3>${rotulo}</h3><div>`;
     h += lista.map((e, i) => ui.exEditando === e.id ? formExercicio(e) : `
       <div class="ex-linha">
         <div class="info"><div>${esc(e.nome)}</div>
-          <div class="s">${e.series} × ${e.repMin}–${e.repMax} · passo ${fmtKg(e.passoKg)} kg${e.variacoes.length ? ' · ' + esc(e.variacoes.join('/')) : ''}</div></div>
+          <div class="s">${resumoExercicio(e)}</div></div>
         <button class="seta" data-acao="ex-mover" data-id="${esc(e.id)}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="Subir ${esc(e.nome)}">↑</button>
         <button class="seta" data-acao="ex-mover" data-id="${esc(e.id)}" data-d="1" ${i === lista.length - 1 ? 'disabled' : ''} aria-label="Descer ${esc(e.nome)}">↓</button>
         <button class="link" data-acao="ex-editar" data-id="${esc(e.id)}">Editar</button>
@@ -1322,7 +1651,7 @@ function telaConfig() {
     : `<button class="botao sec cheio" data-acao="ex-editar" data-id="novo" style="margin-bottom:12px">Novo exercício</button>`;
   const arquivados = estado.exercicios.filter(e => !e.ativo);
   if (arquivados.length) {
-    h += `<section class="cartao"><h3>Arquivados</h3><p class="sec-txt peq">Saem do treino, mas o histórico continua.</p>
+    h += `<section class="cartao"><h3>Arquivados</h3><p class="sec-txt peq">Saem do treino, mas o histórico continua.${exPorId('saltos') && !exPorId('saltos').ativo ? ' Os saltos começam arquivados: reative depois da liberação médica.' : ''}</p>
       ${arquivados.map(e => `<div class="ex-linha"><div class="info">${esc(e.nome)}</div><button class="link" data-acao="ex-reativar" data-id="${esc(e.id)}">Reativar</button></div>`).join('')}</section>`;
   }
 
@@ -1330,15 +1659,32 @@ function telaConfig() {
   h += `<h2 class="secao-titulo">Treino e medidas</h2>
   <section class="cartao">
     <p>Descanso padrão</p>
-    <div class="chips">${[90, 120].map(s => `<button class="chip ${estado.config.descansoS === s ? 'sel' : ''}" data-acao="cfg-descanso" data-v="${s}" aria-pressed="${estado.config.descansoS === s}">${s} s</button>`).join('')}</div>
+    <div class="chips">${TEMPOS_DESCANSO.map(s => `<button class="chip ${estado.config.descansoS === s ? 'sel' : ''}" data-acao="cfg-descanso" data-v="${s}" aria-pressed="${estado.config.descansoS === s}">${s} s</button>`).join('')}</div>
     <p>Manter a tela acesa durante o treino</p>
     <div class="chips">${[[true, 'Sim'], [false, 'Não']].map(([v, t]) => `<button class="chip ${estado.config.telaAcesa === v ? 'sel' : ''}" data-acao="cfg-tela" data-v="${v}" aria-pressed="${estado.config.telaAcesa === v}">${t}</button>`).join('')}</div>
     <p class="sec-txt peq">Com a tela apagada, o celular não vibra no fim do descanso.</p>
-    <form data-form="altura" class="grade-2" style="align-items:end" novalidate>
+    ${PERFIL.periodo ? `<form data-form="altura" class="grade-2" style="align-items:end" novalidate>
       <label class="campo"><span>Altura (cm), para cintura/altura</span><input name="altura" class="num" inputmode="decimal" value="${fmtKgCampo(estado.config.alturaCm)}"></label>
       <button type="submit" class="botao sec">Salvar altura</button>
       <p class="erro" hidden style="grid-column:1 / -1"></p>
-    </form>
+    </form>` : `<form data-form="inicio" class="grade-2" style="align-items:end" novalidate>
+      <label class="campo"><span>Início do plano (conta as fases)</span><input type="date" name="inicio" value="${estado.config.inicioPlano || ''}"></label>
+      <button type="submit" class="botao sec">Salvar início</button>
+      <p class="sec-txt peq" style="grid-column:1 / -1">Hoje é a semana ${semanaDoPlano(hojeISO())} do plano. Fases dos exercícios principais: semanas 1 a 4, 3 × 8-10; semanas 5 a 8, 4 × 6-8; a partir da 9, 4 × 5-6.</p>
+      <p class="erro" hidden style="grid-column:1 / -1"></p>
+    </form>`}
+  </section>`;
+
+  // Perfil
+  const outro = Object.keys(PERFIS).find(p => p !== perfilId);
+  h += `<h2 class="secao-titulo">Perfil deste aparelho</h2>
+  <section class="cartao">
+    <p><strong>${esc(PERFIL.rotulo)}</strong>. ${esc(PERFIL.descricao)}</p>
+    ${ui.confirmar === 'perfil'
+      ? `<div class="confirmacao"><p>Trocar para o ${esc(PERFIS[outro].rotulo)}? Os dados de cada perfil ficam guardados separados neste aparelho; nada é apagado.</p>
+        <div class="acoes"><button class="botao terra" data-acao="trocar-perfil-confirmado" data-p="${outro}">Trocar</button>
+        <button class="botao sec" data-acao="cancelar-confirmacao">Cancelar</button></div></div>`
+      : `<button class="botao sec cheio" data-acao="trocar-perfil">Trocar para o ${esc(PERFIS[outro].rotulo)}</button>`}
   </section>`;
 
   // Dados
@@ -1350,7 +1696,7 @@ function telaConfig() {
       <button class="botao sec" data-acao="exportar-csv-medidas">CSV de medidas</button></div>
     ${ui.importPendente ? `<div class="confirmacao">
         <p>Substituir <strong>todos</strong> os dados deste aparelho pelo arquivo <strong>${esc(ui.importPendente.nome)}</strong>?</p>
-        <p class="peq">O arquivo tem ${ui.importPendente.dados.sessoes.length} treinos, ${ui.importPendente.dados.corridas.length} corridas, ${ui.importPendente.dados.pilates.length} Pilates e ${ui.importPendente.dados.medidas.length} medidas.
+        <p class="peq">O arquivo tem ${ui.importPendente.dados.sessoes.length} treinos, ${ui.importPendente.dados.corridas.length} corridas, ${Object.values(ui.importPendente.dados.marcas).reduce((t, l) => t + l.length, 0)} aulas e ${ui.importPendente.dados.medidas.length} registros de medidas.
         Antes de substituir, um backup dos dados atuais será baixado.${estado.rascunho ? ' O treino em andamento será descartado.' : ''}</p>
         <div class="acoes"><button class="botao terra" data-acao="importar-confirmado">Substituir</button>
         <button class="botao sec" data-acao="importar-cancelar">Cancelar</button></div></div>`
@@ -1361,18 +1707,24 @@ function telaConfig() {
 }
 
 function formExercicio(e) {
-  const x = e || { nome: '', treino: 'A', series: 3, repMin: 8, repMax: 12, passoKg: 2.5, variacoes: [] };
+  const x = e || { nome: '', treino: PERFIL.treinos[0], series: 3, repMin: 8, repMax: 12, passoKg: 2.5, variacoes: [] };
+  const todos = PERFIL.treinos.length === 2 ? 'Os dois' : 'Todos';
+  // Exercícios com fases: séries e repetições vêm das fases; os campos vão ocultos para o formulário continuar válido
+  const camposFaixa = x.fases
+    ? `<input type="hidden" name="series" value="${x.series}"><input type="hidden" name="repMin" value="${x.repMin}"><input type="hidden" name="repMax" value="${x.repMax}">
+       <p class="sec-txt peq" style="grid-column:1 / -1">Séries e repetições seguem as fases do plano (hoje: ${resumoExercicio(x)}).</p>`
+    : `<label class="campo"><span>Séries</span><input name="series" class="num" inputmode="numeric" value="${x.series}"></label>`;
   return `<form data-form="exercicio" data-id="${e ? esc(e.id) : ''}" class="cartao" style="margin:8px 0" novalidate>
     <h3>${e ? 'Editar exercício' : 'Novo exercício'}</h3>
     <label class="campo"><span>Nome</span><input name="nome" value="${esc(x.nome)}" required maxlength="60"></label>
     <fieldset class="chips"><legend>Treino</legend>
-      ${GRUPOS.map(([t, r]) => `<label class="chip-radio"><input type="radio" name="treino" value="${t}" ${x.treino === t ? 'checked' : ''}><span>${t === 'AB' ? 'Os dois' : t}</span></label>`).join('')}
+      ${grupos().map(([t]) => `<label class="chip-radio"><input type="radio" name="treino" value="${t}" ${x.treino === t ? 'checked' : ''}><span>${t === 'AB' ? todos : t}</span></label>`).join('')}
     </fieldset>
     <div class="grade-2">
-      <label class="campo"><span>Séries</span><input name="series" class="num" inputmode="numeric" value="${x.series}"></label>
-      <label class="campo"><span>Passo de carga (kg)</span><input name="passoKg" class="num" inputmode="decimal" value="${fmtKgCampo(x.passoKg)}"></label>
-      <label class="campo"><span>Repetições mín.</span><input name="repMin" class="num" inputmode="numeric" value="${x.repMin}"></label>
-      <label class="campo"><span>Repetições máx.</span><input name="repMax" class="num" inputmode="numeric" value="${x.repMax}"></label>
+      ${camposFaixa}
+      ${x.semCarga ? `<input type="hidden" name="passoKg" value="${fmtKgCampo(x.passoKg)}">` : `<label class="campo"><span>Passo de carga (kg)</span><input name="passoKg" class="num" inputmode="decimal" value="${fmtKgCampo(x.passoKg)}"></label>`}
+      ${x.fases ? '' : `<label class="campo"><span>${x.un === 's' ? 'Segundos' : x.un === 'm' ? 'Metros' : 'Repetições'} mín.</span><input name="repMin" class="num" inputmode="numeric" value="${x.repMin}"></label>
+      <label class="campo"><span>${x.un === 's' ? 'Segundos' : x.un === 'm' ? 'Metros' : 'Repetições'} máx.</span><input name="repMax" class="num" inputmode="numeric" value="${x.repMax}"></label>`}
     </div>
     <label class="campo"><span>Variações, separadas por vírgula (opcional)</span><input name="variacoes" value="${esc(x.variacoes.join(', '))}" placeholder="Ex.: Mesa, Cadeira"></label>
     <p class="erro" hidden></p>
@@ -1395,7 +1747,7 @@ function iniciarDescanso() {
 
 function atualizarCronometro() {
   const el = document.getElementById('cronometro');
-  const r = estado.rascunho;
+  const r = estado && estado.rascunho;
   if (!el || !r || !r.descansoFim) return;
   const resta = Math.ceil((r.descansoFim - Date.now()) / 1000);
   if (resta > 0) {
@@ -1415,7 +1767,7 @@ setInterval(atualizarCronometro, 250);
 
 let travaTela = null, pedindoTrava = false;
 async function gerenciarTela() {
-  const quer = ui.tela === 'treino' && !!estado.rascunho && estado.config.telaAcesa !== false && document.visibilityState === 'visible';
+  const quer = !!estado && ui.tela === 'treino' && !!estado.rascunho && estado.config.telaAcesa !== false && document.visibilityState === 'visible';
   try {
     if (quer && !travaTela && !pedindoTrava && 'wakeLock' in navigator) {
       pedindoTrava = true;
@@ -1470,7 +1822,7 @@ function jsonBackup() {
 }
 
 async function exportarJSON() {
-  const ok = await compartilharOuBaixar(`registro-treino-${carimbo()}.json`, jsonBackup(), 'application/json');
+  const ok = await compartilharOuBaixar(`${PERFIL.arquivo}-${carimbo()}.json`, jsonBackup(), 'application/json');
   if (ok) {
     estado.ultimoBackup = new Date().toISOString();
     salvar();
@@ -1501,6 +1853,11 @@ function csvSeries() {
 
 function csvMedidas() {
   const ms = medidasOrdenadas();
+  if (!PERFIL.periodo) {
+    const linhas = [['data', ...PERFIL.campos.map(c => c.k), 'obs']];
+    ms.forEach(m => linhas.push([dataCsv(m.data), ...PERFIL.campos.map(c => numCsv(m[c.k], c.casas)), m.obs]));
+    return montarCsv(linhas);
+  }
   const mmPeso = mediaMovel(serieMedida(m => m.pesoKg));
   const mmGord = mediaMovel(serieMedida(m => m.gorduraPct));
   const mmCint = mediaMovel(serieMedida(m => m.cinturaCm));
@@ -1528,7 +1885,7 @@ async function lerImportacao(arquivo) {
 
 function confirmarImportacao() {
   // Proteção: baixa os dados atuais antes de substituir
-  baixar(`registro-treino-antes-de-importar-${carimbo()}.json`, jsonBackup(), 'application/json');
+  baixar(`${PERFIL.arquivo}-antes-de-importar-${carimbo()}.json`, jsonBackup(), 'application/json');
   estado = ui.importPendente.dados;
   const nome = ui.importPendente.nome;
   ui.importPendente = null;
@@ -1562,14 +1919,34 @@ const ACOES = {
   'iniciar-treino': d => { novoRascunho(d.t || ui.treinoEscolhido || proximoTreino()); ui.treinoEscolhido = null; salvar(); ir('treino'); },
   'ver-plano': d => { ui.planoTreino = d.t; ir('plano'); },
   'plano-treino': d => { ui.planoTreino = d.t; },
-  'pilates-hoje': () => { const h = hojeISO(); if (!estado.pilates.includes(h)) { estado.pilates.push(h); estado.pilates.sort(); salvar(); } },
-  'pilates-desfazer': () => { estado.pilates = estado.pilates.filter(x => x !== hojeISO()); salvar(); },
+  // Aula do dia: um toque marca, outro desfaz
+  'marcar': d => {
+    const h = hojeISO();
+    const lista = estado.marcas[d.k] || (estado.marcas[d.k] = []);
+    if (lista.includes(h)) {
+      estado.marcas[d.k] = lista.filter(x => x !== h);
+      ui.flash = { txt: `${rotuloMarca(d.k)} desmarcado.` };
+    } else {
+      lista.push(h); lista.sort();
+      ui.flash = { txt: `${rotuloMarca(d.k)} registrado hoje.` };
+    }
+    salvar();
+  },
+  'ver-semana': () => { ui.verSemana = !ui.verSemana; },
+  'escolher-perfil': d => { trocarPerfil(d.p); },
+  'trocar-perfil': () => { ui.confirmar = 'perfil'; },
+  'trocar-perfil-confirmado': d => { ui.confirmar = null; trocarPerfil(d.p); },
   'abrir-form': d => { ui.form = d.f; },
   'fechar-form': () => { ui.form = null; ui.histEditando = null; },
 
   // Treino
   'kg': d => { const { it, s } = itemSerie(d); mudarKg(it, +d.s, Math.max(0, arred(s.kg + Number(d.d) * passoDe(it)))); salvar(); },
-  'reps': d => { const { s } = itemSerie(d); s.reps = Math.max(0, s.reps + Number(d.d)); salvar(); },
+  'reps': d => {
+    const { it, s } = itemSerie(d);
+    const ex = exPorId(it.exercicioId) || {};
+    s.reps = Math.max(0, s.reps + Number(d.d) * passoReps(ex));
+    salvar();
+  },
   'folga': d => { const { s } = itemSerie(d); const v = +d.v; s.folga = s.folga === v ? null : v; salvar(); },
   'feita': d => { const { s } = itemSerie(d); s.feita = !s.feita; if (s.feita) iniciarDescanso(); salvar(); },
   'variacao': d => { estado.rascunho.itens[+d.i].variacao = d.v; salvar(); },
@@ -1622,7 +1999,10 @@ const ACOES = {
     const id = d.k.slice(2);
     if (d.k.startsWith('s:')) estado.sessoes = estado.sessoes.filter(s => s.id !== id);
     if (d.k.startsWith('c:')) estado.corridas = estado.corridas.filter(c => c.id !== id);
-    if (d.k.startsWith('p:')) estado.pilates = estado.pilates.filter(x => x !== id);
+    if (d.k.startsWith('p:')) {
+      const [tipo, data] = id.split('|');
+      if (estado.marcas[tipo]) estado.marcas[tipo] = estado.marcas[tipo].filter(x => x !== data);
+    }
     if (d.k.startsWith('m:')) estado.medidas = estado.medidas.filter(m => m.id !== id);
     ui.confirmar = null; ui.histAberto = null;
     salvar();
@@ -1637,8 +2017,9 @@ const ACOES = {
     const grupo = estado.exercicios.filter(x => x.ativo && x.treino === e.treino).sort((a, b) => a.ordem - b.ordem);
     const i = grupo.indexOf(e), j = i + Number(d.d);
     if (j < 0 || j >= grupo.length) return;
-    [grupo[i], grupo[j]] = [grupo[j], grupo[i]];
-    grupo.forEach((x, k) => { x.ordem = (x.treino === 'AB' ? 100 : 0) + k + 1; });
+    // Troca as posições dos dois: preserva a numeração do grupo (os saltos ficam com ordem 0, antes de tudo)
+    [grupo[i].ordem, grupo[j].ordem] = [grupo[j].ordem, grupo[i].ordem];
+    if (grupo[i].ordem === grupo[j].ordem) grupo[j].ordem += Number(d.d) > 0 ? -0.5 : 0.5;
     salvar();
   },
   'ex-arquivar': d => { exPorId(d.id).ativo = false; ui.exEditando = null; salvar(); ui.flash = { txt: 'Exercício arquivado. O histórico foi mantido.' }; },
@@ -1707,7 +2088,7 @@ document.addEventListener('submit', ev => {
   ev.preventDefault();
   const dados = new FormData(f);
   const erro = msg => { const p = f.querySelector('.erro'); p.textContent = msg; p.hidden = false; };
-  const resultado = ({ corrida: salvarCorrida, medidas: salvarMedidas, exercicio: salvarExercicio, altura: salvarAltura })[f.dataset.form](dados, f.dataset.id, erro);
+  const resultado = ({ corrida: salvarCorrida, medidas: salvarMedidas, exercicio: salvarExercicio, altura: salvarAltura, inicio: salvarInicio })[f.dataset.form](dados, f.dataset.id, erro);
   if (resultado === false) return;
   salvar();
   ui.form = null; ui.histEditando = null; ui.exEditando = null;
@@ -1731,7 +2112,8 @@ function salvarMedidas(dados, id, erro) {
   const data = dados.get('data');
   if (!data) return erro('Informe a data.'), false;
   const reg = { data, obs: String(dados.get('obs') || '').trim() };
-  for (const c of CAMPOS_MEDIDA) {
+  if (PERFIL.campos.every(c => lerNumero(dados.get(c.k)) === null)) return erro('Preencha ao menos um campo.'), false;
+  for (const c of PERFIL.campos) {
     const v = lerNumero(dados.get(c.k));
     if (v === null) {
       if (c.obrig) return erro(`${c.rotulo} é obrigatório.`), false;
@@ -1744,9 +2126,9 @@ function salvarMedidas(dados, id, erro) {
   }
   let existente = id && estado.medidas.find(m => m.id === id);
   if (!existente) existente = estado.medidas.find(m => m.data === data);  // uma medida por data
-  if (existente) { Object.assign(existente, reg); return `Medidas de ${fmtData(data)} atualizadas.`; }
+  if (existente) { Object.assign(existente, reg); return `Registro de ${fmtData(data)} atualizado.`; }
   estado.medidas.push({ id: novoId('m'), ...reg });
-  return 'Medidas salvas.';
+  return PERFIL.periodo ? 'Medidas salvas.' : 'Registro salvo.';
 }
 
 function salvarExercicio(dados, id, erro) {
@@ -1757,9 +2139,9 @@ function salvarExercicio(dados, id, erro) {
   const passoKg = lerNumero(dados.get('passoKg'));
   if (!nome) return erro('Informe o nome.'), false;
   if (!Number.isInteger(series) || series < 1 || series > 10) return erro('Séries: de 1 a 10.'), false;
-  if (!Number.isInteger(repMin) || !Number.isInteger(repMax) || repMin < 1 || repMax < repMin || repMax > 50) return erro('Faixa de repetições inválida.'), false;
+  if (!Number.isInteger(repMin) || !Number.isInteger(repMax) || repMin < 1 || repMax < repMin || repMax > 600) return erro('Faixa de repetições inválida.'), false;
   if (!Number.isFinite(passoKg) || passoKg <= 0 || passoKg > 50) return erro('Passo de carga inválido.'), false;
-  const treino = dados.get('treino') || 'A';
+  const treino = grupos().some(([t]) => t === dados.get('treino')) ? dados.get('treino') : PERFIL.treinos[0];
   const variacoes = String(dados.get('variacoes') || '').split(',').map(v => v.trim()).filter(Boolean);
   const campos = { nome, treino, series, repMin, repMax, passoKg, variacoes };
   if (id) {
@@ -1788,6 +2170,37 @@ function salvarAltura(dados, id, erro) {
   return 'Altura salva.';
 }
 
+function salvarInicio(dados, id, erro) {
+  const v = dados.get('inicio');
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return erro('Informe a data de início.'), false;
+  estado.config.inicioPlano = v;
+  return `Início do plano: ${fmtData(v)}. Hoje é a semana ${semanaDoPlano(hojeISO())}.`;
+}
+
+// Troca o perfil deste aparelho. Os dados de cada perfil ficam em chaves separadas.
+function trocarPerfil(p) {
+  if (!PERFIS[p]) return;
+  if (estado) salvar();
+  try { localStorage.setItem(CHAVE_PERFIL, p); } catch (e) {}
+  perfilId = p;
+  PERFIL = PERFIS[p];
+  avisoArmazenamento = null;
+  estado = carregar();
+  salvar();
+  Object.assign(ui, { tela: '', treinoEscolhido: null, planoTreino: null, form: null, confirmar: null,
+    histFiltro: 'tudo', histAberto: null, histEditando: null, exEditando: null, exProgresso: null, importPendente: null, leituras: {} });
+  ui.flash = { txt: `Perfil: ${PERFIL.rotulo}.` };
+  if (location.hash.slice(1) === 'hoje') lerRota(); else location.hash = 'hoje';
+}
+
+/* ---------- Escolha de perfil (primeira abertura) ---------- */
+function telaEscolha() {
+  return `<header class="topo"><h1>Registro de treino</h1><p class="data">Qual plano vai ser usado neste aparelho?</p></header>
+    ${Object.entries(PERFIS).map(([id, p]) => `<button class="perfil-opcao" data-acao="escolher-perfil" data-p="${id}">
+      <strong>${esc(p.rotulo)}</strong><span>${esc(p.descricao)}</span></button>`).join('')}
+    <p class="sec-txt peq">Dá para trocar depois em Config. Os dados ficam só neste aparelho.</p>`;
+}
+
 /* =====================================================================
    10. Rotas e desenho da tela
    ===================================================================== */
@@ -1799,6 +2212,7 @@ function ir(tela) {
 }
 
 function lerRota() {
+  if (!PERFIL) { render(); return; }
   let t = location.hash.slice(1);
   if (!TELAS[t]) t = 'hoje';
   if (t === 'treino' && !estado.rascunho) t = 'hoje';
@@ -1810,6 +2224,14 @@ function lerRota() {
 }
 
 function render() {
+  if (!PERFIL) {
+    document.body.dataset.tela = 'escolha';
+    document.getElementById('app').innerHTML = telaEscolha();
+    return;
+  }
+  // Depois de salvar, descartar ou trocar de perfil, o "#" muda só no evento seguinte:
+  // até lá, não desenha uma tela que já não existe.
+  if (!TELAS[ui.tela] || (ui.tela === 'treino' && !estado.rascunho)) ui.tela = 'hoje';
   document.body.dataset.tela = ui.tela;
   document.getElementById('app').innerHTML = TELAS[ui.tela]();
   document.querySelectorAll('nav.abas button').forEach(b => {
@@ -1822,17 +2244,17 @@ function render() {
 }
 
 window.addEventListener('hashchange', lerRota);
-window.addEventListener('storage', ev => { if (ev.key === CHAVE) { estado = carregar(); render(); } });
+window.addEventListener('storage', ev => { if (PERFIL && ev.key === PERFIL.chave) { estado = carregar(); render(); } });
 
 /* =====================================================================
    11. Início
    ===================================================================== */
-if (estado.rascunho && estado.rascunho.descansoFim && estado.rascunho.descansoFim < Date.now()) vibrou = true;
+if (estado && estado.rascunho && estado.rascunho.descansoFim && estado.rascunho.descansoFim < Date.now()) vibrou = true;
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('service-worker.js').catch(() => {});
 }
-salvar();   // grava o estado inicial na primeira abertura
+if (estado) salvar();   // grava o estado inicial na primeira abertura (o Plano A/B já migra o Pilates aqui)
 lerRota();
 </script>
 </body>
