@@ -241,6 +241,7 @@ body[data-tela="treino"] nav.abas { display: none; }
 .dia-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .semana-comida { display: block; font-weight: 400; margin-top: 2px; }
 .semana-aviso { margin: 8px 0 0; }
+.regra { margin: -2px 0 10px; font-weight: 600; color: var(--oliva); font-size: 15px; }
 .prioridade { font-size: 15px; border-left: 3px solid var(--terra); padding-left: 10px; }
 .links-dia { display: flex; gap: 20px; flex-wrap: wrap; }
 .guia-comida { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--linha); }
@@ -360,7 +361,7 @@ body[data-tela="escolha"] nav.abas { display: none; }
    ===================================================================== */
 const CHAVE_PERFIL = 'registro-treino-perfil';
 const VERSAO_DADOS = 1;
-const VERSAO_APP = '1.3.0';
+const VERSAO_APP = '1.3.1';
 const META_CINTURA = 90;
 const META_RCA = 0.5;
 const META_VISCERAL = 9;
@@ -485,6 +486,7 @@ const PERFIS = {
   },
   p2: {
     rotulo: 'Plano 1-2-3',
+    regra: 'Treinar pesado, saltar, comer proteína em toda refeição e medir.',
     descricao: 'Treinos 1, 2 e 3 com fases de carga, saltos, aulas da semana e registro de energia.',
     chave: 'registro-treino-p2-v1',
     arquivo: 'registro-treino-plano123',
@@ -1168,6 +1170,7 @@ function cartaoDia(hoje) {
   const dia = PERFIL.semana[dow];
   let h = `<section class="cartao">
     <h2>Hoje</h2>
+    ${PERFIL.regra ? `<p class="regra">${esc(PERFIL.regra)}</p>` : ''}
     <ul class="dia-lista">${dia.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
   if (dia.dica) h += `<p class="dica">${esc(dia.dica)}</p>`;
   if (dia.comida && ui.comidaDia !== dow) h += `<p class="prioridade"><strong>Comer:</strong> ${esc(dia.comida.prioridade)}</p>`;
