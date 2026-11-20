@@ -1,6 +1,6 @@
 // Service worker: guarda o app no aparelho para funcionar offline.
 // Ao publicar uma nova versão do index.html, mude o número abaixo.
-const VERSAO = 'registro-treino-1.2.0';
+const VERSAO = 'registro-treino-1.3.0';
 const CACHE_FONTES = 'registro-treino-fontes';
 const ARQUIVOS = ['./', './index.html', './manifest.webmanifest', './icone-192.png', './icone-512.png'];
 

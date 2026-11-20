@@ -236,6 +236,23 @@ body[data-tela="treino"] nav.abas { display: none; }
 .semana-tab td { padding: 6px 4px; border-top: 1px solid var(--linha); vertical-align: top; }
 .semana-tab td:first-child { font-family: var(--mono); color: var(--texto-sec); width: 44px; }
 .semana-tab tr.hoje td { font-weight: 600; color: var(--terra); }
+.semana-tab tr { cursor: pointer; }
+.semana-tab tr.aberto td { background: var(--mostarda-fundo); }
+.dia-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.semana-comida { display: block; font-weight: 400; margin-top: 2px; }
+.semana-aviso { margin: 8px 0 0; }
+.prioridade { font-size: 15px; border-left: 3px solid var(--terra); padding-left: 10px; }
+.links-dia { display: flex; gap: 20px; flex-wrap: wrap; }
+.guia-comida { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--linha); }
+.guia-comida h3 { font-size: 17px; margin: 10px 0 6px; }
+.comida-tab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.comida-tab td { padding: 7px 4px; border-top: 1px solid var(--linha); vertical-align: top; }
+.comida-tab td:first-child { font-family: var(--mono); color: var(--texto-sec); width: 30%; font-size: 14px; }
+.comida-tab td span { display: block; font-size: 14px; margin-top: 2px; }
+.comida-tab tr.destaque td { background: var(--terra-fundo); }
+.comida-tab tr.destaque td:first-child { color: var(--terra); font-weight: 600; }
+.regras-comida { margin: 0; padding-left: 20px; font-size: 15px; }
+.regras-comida li { margin: 4px 0; }
 .perfil-opcao { display: block; width: 100%; text-align: left; padding: 16px; margin-bottom: 12px;
   border: 2px solid var(--oliva); border-radius: var(--raio); background: var(--cartao); }
 .perfil-opcao strong { display: block; font-family: var(--titulo); font-size: 20px; }
@@ -343,7 +360,7 @@ body[data-tela="escolha"] nav.abas { display: none; }
    ===================================================================== */
 const CHAVE_PERFIL = 'registro-treino-perfil';
 const VERSAO_DADOS = 1;
-const VERSAO_APP = '1.2.0';
+const VERSAO_APP = '1.3.0';
 const META_CINTURA = 90;
 const META_RCA = 0.5;
 const META_VISCERAL = 9;
@@ -383,29 +400,27 @@ const FASES_SALTOS = [
 function ex2(id, nome, treino, series, repMin, repMax, passoKg, ordem, extra = {}) {
   return { id, nome, treino, series, repMin, repMax, passoKg, variacoes: [], ordem, ativo: true, ...extra };
 }
+// Treino 1 = pernas com hack (seg), 2 = braços (qua, depois do Pilates), 3 = pernas com stiff (qui)
 const EXERCICIOS_P2 = [
   ex2('saltos', 'Saltos', 'AB', 3, 10, 10, 1, 0, { semCarga: true, fases: FASES_SALTOS, ativo: false }),
   ex2('hack', 'Hack articulado', '1', 3, 8, 10, 2.5, 1, { principal: true, fases: FASES_PRINCIPAL }),
-  ex2('supino-reto-halteres', 'Supino reto com halteres', '1', 3, 8, 10, 1, 2),
-  ex2('remada-curvada', 'Remada curvada pronada', '1', 3, 8, 10, 1, 3),
-  ex2('afundo', 'Afundo ou subida no banco', '1', 3, 8, 10, 1, 4, { variacoes: ['Afundo', 'Subida no banco'] }),
+  ex2('elevacao-pelvica', 'Elevação pélvica com barra', '1', 4, 6, 10, 2.5, 2),
+  ex2('afundo', 'Afundo ou subida no banco', '1', 3, 8, 10, 1, 3, { variacoes: ['Afundo', 'Subida no banco'] }),
+  ex2('cadeira-extensora', 'Cadeira extensora', '1', 3, 10, 12, 2.5, 4),
   ex2('panturrilha', 'Panturrilha', '1', 3, 10, 12, 2.5, 5),
   ex2('prancha', 'Prancha', '1', 3, 20, 40, 1, 6, { semCarga: true, un: 's' }),
-  ex2('stiff', 'Stiff com barra', '2', 3, 8, 10, 2, 1, { principal: true, fases: FASES_PRINCIPAL }),
-  ex2('elevacao-pelvica', 'Elevação pélvica com barra', '2', 4, 6, 10, 2.5, 2),
-  ex2('agachamento-goblet', 'Agachamento goblet', '2', 3, 8, 10, 1, 3),
-  ex2('serrote', 'Serrote', '2', 3, 8, 10, 1, 4),
-  ex2('flexora', 'Mesa flexora', '2', 3, 10, 12, 2.5, 5),
-  ex2('prancha-lateral', 'Prancha lateral', '2', 3, 15, 30, 1, 6, { semCarga: true, un: 's' }),
-  ex2('remada-baixa', 'Remada baixa na polia', '3', 3, 10, 12, 2.5, 1),
-  ex2('paralelas', 'Paralelas na máquina', '3', 3, 10, 12, 2.5, 2, { variacoes: ['Paralelas', 'Tríceps na polia'] }),
-  ex2('supino-maquina', 'Supino', '3', 3, 10, 12, 2.5, 3, { variacoes: ['Máquina', 'Flexão inclinada'] }),
-  ex2('rosca-alternada', 'Rosca alternada', '3', 3, 10, 12, 1, 4),
-  ex2('cadeira-extensora', 'Cadeira extensora', '3', 3, 10, 12, 2.5, 5),
-  ex2('abdutora', 'Abdutora', '3', 2, 12, 15, 2.5, 6),
-  ex2('carregamento', 'Carregar halteres caminhando', '3', 3, 30, 30, 1, 7, { un: 'm' }),
-  ex2('perdigueiro', 'Perdigueiro', '3', 3, 8, 8, 1, 8, { semCarga: true }),
-  ex2('rotacao-cross', 'Rotação no cross (manguito)', 'AB', 3, 10, 12, 1, 101),
+  ex2('serrote', 'Serrote', '2', 3, 8, 10, 1, 1),
+  ex2('remada-curvada', 'Remada curvada pronada', '2', 3, 8, 10, 1, 2),
+  ex2('supino-reto-halteres', 'Supino reto com halteres', '2', 3, 8, 10, 1, 3),
+  ex2('paralelas', 'Paralelas na máquina', '2', 3, 10, 12, 2.5, 4, { variacoes: ['Paralelas', 'Tríceps na polia'] }),
+  ex2('carregamento', 'Carregar halteres caminhando', '2', 3, 30, 30, 1, 5, { un: 'm' }),
+  ex2('rotacao-cross', 'Rotação no cross (manguito)', '2', 3, 10, 12, 1, 6),
+  ex2('stiff', 'Stiff com barra', '3', 3, 8, 10, 2, 1, { principal: true, fases: FASES_PRINCIPAL }),
+  ex2('agachamento-goblet', 'Agachamento goblet', '3', 3, 8, 10, 1, 2),
+  ex2('flexora', 'Mesa flexora', '3', 3, 10, 12, 2.5, 3),
+  ex2('abdutora', 'Abdutora', '3', 2, 12, 15, 2.5, 4),
+  ex2('prancha-lateral', 'Prancha lateral', '3', 3, 15, 30, 1, 5, { semCarga: true, un: 's' }),
+  ex2('perdigueiro', 'Perdigueiro', '3', 3, 8, 8, 1, 6, { semCarga: true }),
 ];
 
 const MEDIDAS_P1 = [
@@ -420,6 +435,30 @@ const MEDIDAS_P2 = [
   { k: 'pesoKg', rotulo: 'Peso', un: 'kg', casas: 1, max: 300 },
   { k: 'cinturaCm', rotulo: 'Barriga (umbigo)', un: 'cm', casas: 1, max: 250 },
 ];
+
+// Guia de alimentação dos dias de musculação (horário livre): conta a partir do treino.
+// Passo: [quando, o quê, exemplo, destaque]
+const COMIDA_MUSCULACAO = {
+  prioridade: 'Não treinar em jejum. Depois do treino, refeição com proteína em até 2 horas.',
+  passos: [
+    ['2 a 3 h antes', 'Refeição normal', 'Ou, se não der, o lanche leve logo abaixo'],
+    ['30 a 60 min antes', 'Lanche leve', 'Banana, fruta com iogurte, ou cuscuz com queijo'],
+    ['Até 2 h depois', 'Refeição com proteína', '2 ovos ou whey com fruta, queijo, cuscuz ou aveia', true],
+    ['Almoço', 'Prato completo', 'Arroz, feijão, frango, carne ou peixe, verdura e salada'],
+    ['Tarde', 'Lanche', 'Iogurte com aveia e fruta, 1 fatia de queijo, castanhas'],
+    ['Jantar', 'Com proteína', 'Peixe, omelete ou carne, arroz, feijão, legumes'],
+  ],
+};
+
+const COMIDA_DESCANSO = {
+  prioridade: 'Descanso não é dia de comer pouco: as mesmas 4 refeições com proteína.',
+  passos: [
+    ['Café da manhã', 'Com proteína', 'Ovos, queijo, cuscuz ou aveia, fruta'],
+    ['Almoço', 'Prato completo', 'Arroz, feijão, carne, frango ou peixe, verdura'],
+    ['Lanche', 'Iogurte e queijo', 'Iogurte com aveia e fruta, 1 fatia de queijo'],
+    ['Jantar', 'Com proteína', 'Peixe, omelete ou carne, arroz, feijão, legumes'],
+  ],
+};
 
 const PERFIS = {
   p1: {
@@ -450,8 +489,11 @@ const PERFIS = {
     chave: 'registro-treino-p2-v1',
     arquivo: 'registro-treino-plano123',
     treinos: ['1', '2', '3'],
-    nomesTreino: { '1': 'Pesado: pernas e empurrar', '2': 'Pesado: quadril e puxar', '3': 'Moderado: membros superiores' },
-    treinoDoDia: { 1: '1', 4: '2', 5: '3' },
+    nomesTreino: { '1': 'Pernas, com hack', '2': 'Braços', '3': 'Pernas, com stiff' },
+    treinoDoDia: { 1: '1', 3: '2', 4: '3' },
+    // Versão do plano: ao subir, os exercícios guardados no aparelho são reorganizados (ver atualizarPlano)
+    versaoPlano: 2,
+    removidosPlano: ['remada-baixa', 'supino-maquina', 'rosca-alternada'],
     periodo: null,
     marcas: [['yoga', 'Yoga'], ['bike', 'Bike'], ['pilates', 'Pilates'], ['jump', 'Jump'], ['rpg', 'RPG']],
     campos: MEDIDAS_P2,
@@ -463,14 +505,48 @@ const PERFIS = {
     medidasIniciais: [],
     config: { descansoS: 120, alturaCm: null, telaAcesa: true },
     semana: {
-      1: { itens: ['Musculação: treino 1 (pesado)'], dica: 'Treine com algo no estômago. Depois, uma refeição com 20 a 30 g de proteína em até 2 horas.' },
-      2: { itens: ['Yoga 8h', 'Bike 9h', 'RPG 13h'], dica: 'Lanche leve antes das 8h e refeição com proteína depois da bike. Almoço completo.' },
-      3: { itens: ['Pilates 8h', 'Jump 18h'], dica: 'Lanche reforçado às 16h30, com carboidrato e proteína, antes do jump.' },
-      4: { itens: ['Musculação: treino 2 (pesado)'], dica: 'Treine com algo no estômago. Depois, uma refeição com 20 a 30 g de proteína em até 2 horas.' },
-      5: { itens: ['Musculação: treino 3 (moderado)'], dica: 'Pernas leves hoje: amanhã tem corrida.' },
-      6: { itens: ['Corrida, 30 a 45 min'], dica: 'Café leve 30 a 60 minutos antes. Ritmo de conversa na maior parte do tempo.' },
-      0: { itens: ['Descanso'], dica: 'Dia de dar a nota de energia da semana.' },
+      1: { itens: ['Musculação: treino 1, pernas (hack)'], comida: COMIDA_MUSCULACAO },
+      2: { itens: ['Yoga 8h', 'Bike 9h', 'RPG 13h'], comida: {
+        prioridade: 'Comer antes das 8h e repor depois da bike. É o dia mais cheio: não pule o almoço antes do RPG.',
+        passos: [
+          ['7h15', 'Lanche leve', 'Fruta com iogurte, ou cuscuz com queijo'],
+          ['8h às 10h', 'Yoga e bike', 'Leve água'],
+          ['10h15', 'Refeição com proteína', '2 ovos ou whey com fruta, queijo, cuscuz ou aveia'],
+          ['12h', 'Almoço completo', 'Arroz, feijão, frango, carne ou peixe, verdura e salada'],
+          ['13h', 'RPG', ''],
+          ['Tarde', 'Lanche', 'Iogurte com aveia e fruta, 1 fatia de queijo'],
+          ['Jantar', 'Com proteína', 'Peixe, omelete ou carne, arroz, feijão, legumes'],
+        ] } },
+      3: { itens: ['Pilates 8h', 'Musculação: treino 2, braços (logo depois)', 'Jump 18h'], comida: {
+        prioridade: 'O dia mais puxado: refeição com proteína logo depois da musculação e lanche reforçado às 16h30.',
+        passos: [
+          ['7h15', 'Lanche leve', 'Fruta com iogurte'],
+          ['8h', 'Pilates', ''],
+          ['9h', 'Musculação: braços', 'Leve água'],
+          ['10h15', 'Café com proteína', '2 ovos ou whey, 1 fatia de queijo, cuscuz, mamão, café preto', true],
+          ['12h30', 'Almoço', 'Arroz, feijão, frango, couve, salada, 1 laranja'],
+          ['16h30', 'Lanche reforçado', 'Iogurte com aveia e banana, 1 fatia de queijo, 3 castanhas', true],
+          ['18h', 'Jump', 'Leve água'],
+          ['19h30', 'Jantar com proteína', 'Peixe ou omelete, arroz, feijão, legumes'],
+        ] } },
+      4: { itens: ['Musculação: treino 3, pernas (stiff)'], comida: COMIDA_MUSCULACAO },
+      5: { itens: ['Livre'], dica: 'Repõe um treino perdido na semana, ou descansa.', comida: COMIDA_DESCANSO },
+      6: { itens: ['Corrida, 30 a 45 min'], dica: 'Ritmo de conversa na maior parte do tempo.', comida: {
+        prioridade: 'Café leve antes da corrida e refeição com proteína depois.',
+        passos: [
+          ['30 a 60 min antes', 'Café leve', 'Banana, ou fruta com iogurte'],
+          ['Corrida', '30 a 45 min', 'Leve água'],
+          ['Depois', 'Refeição com proteína', 'Ovos com queijo e cuscuz, ou whey com fruta'],
+          ['Resto do dia', 'Almoço, lanche e jantar', 'Como nos outros dias'],
+        ] } },
+      0: { itens: ['Descanso'], dica: 'Dia de dar a nota de energia da semana. Se ficar em 5 ou menos por duas semanas seguidas, reveja a comida e o descanso.', comida: COMIDA_DESCANSO },
     },
+    regrasComida: [
+      'Proteína em 4 refeições. Uma porção: 2 ovos, 1 filé de frango, carne ou peixe, ou 1 dose de whey.',
+      'Cálcio todo dia: 1 pote de iogurte natural, 2 fatias de queijo e folhas verde-escuras, como couve e brócolis.',
+      'Nunca treinar em jejum.',
+      'Comer o suficiente: o objetivo é ganhar músculo, não perder peso.',
+    ],
   },
 };
 
@@ -554,7 +630,7 @@ function estadoInicial() {
     corridas: [],
     marcas: marcasVazias(),
     medidas: PERFIL.medidasIniciais.map(m => ({ ...m })),
-    config: { ...PERFIL.config, inicioPlano: PERFIL.periodo ? null : segundaDaSemana(hojeISO()) },
+    config: { ...PERFIL.config, inicioPlano: PERFIL.periodo ? null : segundaDaSemana(hojeISO()), versaoPlano: PERFIL.versaoPlano || 1 },
     ultimoBackup: null,
     rascunho: null,
   };
@@ -606,6 +682,7 @@ function migrar(d, manterRascunho) {
     throw new Error(`este backup é do ${PERFIS[perfilDoArquivo].rotulo}, e este aparelho está no ${PERFIL.rotulo}.`);
   }
   const base = estadoInicial();
+  const versaoPlanoDados = inteiro(d.config && d.config.versaoPlano, 1);
   const dataOk = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
   const treinosOk = [...PERFIL.treinos, 'AB'];
   const fasesOk = f => Array.isArray(f) && f.length ? f.map(x => ({
@@ -615,7 +692,7 @@ function migrar(d, manterRascunho) {
   const marcasBrutas = d.marcas && typeof d.marcas === 'object' ? d.marcas : { pilates: d.pilates || [] };
   const marcas = marcasVazias();
   Object.keys(marcas).forEach(k => { marcas[k] = [...new Set((marcasBrutas[k] || []).filter(dataOk))].sort(); });
-  return {
+  const novo = {
     versao: VERSAO_DADOS,
     perfil: perfilId,
     exercicios: d.exercicios.map((e, i) => ({
@@ -669,10 +746,34 @@ function migrar(d, manterRascunho) {
       cinturaCm: numeroOuNulo(m.cinturaCm),
       obs: String(m.obs ?? ''),
     })),
-    config: { ...base.config, ...(d.config || {}) },
+    config: { ...base.config, ...(d.config || {}), versaoPlano: Math.max(versaoPlanoDados, PERFIL.versaoPlano || 1) },
     ultimoBackup: d.ultimoBackup ?? null,
     rascunho: manterRascunho ? (d.rascunho ?? null) : null,
   };
+  if (PERFIL.versaoPlano && versaoPlanoDados < PERFIL.versaoPlano) {
+    novo.exercicios = atualizarPlano(novo.exercicios);   // um treino em andamento continua como estava
+  }
+  return novo;
+}
+
+// Reorganiza os exercícios guardados para o plano atual, sem apagar nada:
+// os do plano recebem treino, ordem e séries novos (a carga e o histórico ficam);
+// os que saíram vão para os arquivados; os criados pela pessoa ficam como estão.
+// Os saltos mantêm o estado (arquivados até a liberação médica, ou já reativados).
+function atualizarPlano(exs) {
+  const lista = exs.map(e => ({ ...e }));
+  PERFIL.exercicios.forEach(n => {
+    const e = lista.find(x => x.id === n.id);
+    const campos = {
+      nome: n.nome, treino: n.treino, series: n.series, repMin: n.repMin, repMax: n.repMax, ordem: n.ordem,
+      variacoes: [...n.variacoes], semCarga: n.semCarga, un: n.un, principal: n.principal,
+      fases: n.fases ? n.fases.map(f => ({ ...f })) : undefined,
+    };
+    if (e) Object.assign(e, campos, { ativo: n.id === 'saltos' ? e.ativo : n.ativo });
+    else lista.push({ ...n, ...campos });
+  });
+  (PERFIL.removidosPlano || []).forEach(id => { const e = lista.find(x => x.id === id); if (e) e.ativo = false; });
+  return lista;
 }
 
 function inteiro(v, padrao) { const n = parseInt(v, 10); return Number.isFinite(n) ? n : padrao; }
@@ -952,6 +1053,7 @@ function diasDesdeBackup() {
 let estado = PERFIL ? carregar() : null;
 const ui = {
   verSemana: false,
+  comidaDia: null,         // dia (0-6) com o guia de alimentação aberto
   tela: 'hoje',
   treinoEscolhido: null,   // troca manual A/B na tela Hoje
   planoTreino: null,       // treino aberto na tela "Ver treino"
@@ -1066,19 +1168,49 @@ function cartaoDia(hoje) {
   const dia = PERFIL.semana[dow];
   let h = `<section class="cartao">
     <h2>Hoje</h2>
-    <ul class="dia-lista">${dia.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-    <p class="dica">${esc(dia.dica)}</p>`;
+    <ul class="dia-lista">${dia.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+  if (dia.dica) h += `<p class="dica">${esc(dia.dica)}</p>`;
+  if (dia.comida && ui.comidaDia !== dow) h += `<p class="prioridade"><strong>Comer:</strong> ${esc(dia.comida.prioridade)}</p>`;
   const saltos = exPorId('saltos');
   if (saltos && !saltos.ativo && /Musculação/.test(dia.itens.join(' '))) {
     h += `<p class="sec-txt peq">Saltos: reative em Config, nos arquivados, depois da liberação médica.</p>`;
   }
+  const guia = ui.comidaDia !== null && PERFIL.semana[ui.comidaDia] && PERFIL.semana[ui.comidaDia].comida
+    ? guiaComida(ui.comidaDia, dow) : '';
+  // Com a semana aberta, o guia aparece logo abaixo dela, perto do dia tocado
+  if (!ui.verSemana) h += guia;
   if (ui.verSemana) {
     const ordem = [1, 2, 3, 4, 5, 6, 0];
-    h += `<table class="semana-tab">${ordem.map(d => `<tr class="${d === dow ? 'hoje' : ''}"><td>${DIAS[d]}</td><td>${esc(PERFIL.semana[d].itens.join(' · '))}</td></tr>`).join('')}</table>`;
+    h += `<p class="sec-txt peq semana-aviso">Toque no dia para ver como comer.</p>
+    <table class="semana-tab">${ordem.map(d => {
+      const sd = PERFIL.semana[d];
+      return `<tr class="${d === dow ? 'hoje' : ''}${d === ui.comidaDia ? ' aberto' : ''}" data-acao="ver-comida" data-d="${d}">
+        <td>${sd.comida ? `<button class="dia-btn" data-acao="ver-comida" data-d="${d}" aria-expanded="${d === ui.comidaDia}">${DIAS[d]}</button>` : DIAS[d]}</td>
+        <td>${esc(sd.itens.join(' · '))}${sd.comida ? `<span class="sec-txt peq semana-comida">${esc(sd.comida.prioridade)}</span>` : ''}</td></tr>`;
+    }).join('')}</table>${guia}`;
   }
-  h += `<button class="link" data-acao="ver-semana">${ui.verSemana ? 'Esconder a semana' : 'Ver a semana'}</button>
+  const comidaHoje = ui.comidaDia === dow;
+  h += `<div class="links-dia">
+    ${dia.comida ? `<button class="link" data-acao="ver-comida" data-d="${dow}" aria-expanded="${comidaHoje}">${comidaHoje ? 'Fechar comida' : 'Comer hoje'}</button>` : ''}
+    <button class="link" data-acao="ver-semana" aria-expanded="${ui.verSemana}">${ui.verSemana ? 'Esconder a semana' : 'Ver a semana'}</button>
+  </div>
   </section>`;
   return h;
+}
+
+// Guia de alimentação de um dia, aberto pelo "Comer hoje" ou pelo toque no dia da semana
+function guiaComida(d, dow) {
+  const c = PERFIL.semana[d].comida;
+  const NOMES = ['no domingo', 'na segunda', 'na terça', 'na quarta', 'na quinta', 'na sexta', 'no sábado'];
+  const titulo = d === dow ? 'Comer hoje' : `Comer ${NOMES[d]}`;
+  return `<div class="guia-comida">
+    <h3>${titulo}</h3>
+    <p class="prioridade"><strong>Prioridade:</strong> ${esc(c.prioridade)}</p>
+    <table class="comida-tab">${c.passos.map(([quando, oque, ex, destaque]) => `<tr class="${destaque ? 'destaque' : ''}">
+      <td>${esc(quando)}</td>
+      <td><strong>${esc(oque)}</strong>${ex ? `<span class="sec-txt">${esc(ex)}</span>` : ''}</td></tr>`).join('')}</table>
+    ${PERFIL.regrasComida ? `<h3>Todo dia</h3><ul class="regras-comida">${PERFIL.regrasComida.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+  </div>`;
 }
 
 function cartaoPeriodo(hoje) {
@@ -1933,6 +2065,7 @@ const ACOES = {
     salvar();
   },
   'ver-semana': () => { ui.verSemana = !ui.verSemana; },
+  'ver-comida': d => { const n = Number(d.d); ui.comidaDia = ui.comidaDia === n ? null : n; },
   'escolher-perfil': d => { trocarPerfil(d.p); },
   'trocar-perfil': () => { ui.confirmar = 'perfil'; },
   'trocar-perfil-confirmado': d => { ui.confirmar = null; trocarPerfil(d.p); },
