@@ -361,7 +361,7 @@ body[data-tela="escolha"] nav.abas { display: none; }
    ===================================================================== */
 const CHAVE_PERFIL = 'registro-treino-perfil';
 const VERSAO_DADOS = 1;
-const VERSAO_APP = '1.3.1';
+const VERSAO_APP = '1.3.2';
 const META_CINTURA = 90;
 const META_RCA = 0.5;
 const META_VISCERAL = 9;
@@ -421,7 +421,7 @@ const EXERCICIOS_P2 = [
   ex2('flexora', 'Mesa flexora', '3', 3, 10, 12, 2.5, 3),
   ex2('abdutora', 'Abdutora', '3', 2, 12, 15, 2.5, 4),
   ex2('prancha-lateral', 'Prancha lateral', '3', 3, 15, 30, 1, 5, { semCarga: true, un: 's' }),
-  ex2('perdigueiro', 'Perdigueiro', '3', 3, 8, 8, 1, 6, { semCarga: true }),
+  ex2('extensao-lombar', 'Extensão lombar no banco 45°', '3', 3, 10, 12, 1, 6),
 ];
 
 const MEDIDAS_P1 = [
@@ -494,8 +494,8 @@ const PERFIS = {
     nomesTreino: { '1': 'Pernas, com hack', '2': 'Braços', '3': 'Pernas, com stiff' },
     treinoDoDia: { 1: '1', 3: '2', 4: '3' },
     // Versão do plano: ao subir, os exercícios guardados no aparelho são reorganizados (ver atualizarPlano)
-    versaoPlano: 2,
-    removidosPlano: ['remada-baixa', 'supino-maquina', 'rosca-alternada'],
+    versaoPlano: 3,
+    removidosPlano: ['remada-baixa', 'supino-maquina', 'rosca-alternada', 'perdigueiro'],
     periodo: null,
     marcas: [['yoga', 'Yoga'], ['bike', 'Bike'], ['pilates', 'Pilates'], ['jump', 'Jump'], ['rpg', 'RPG']],
     campos: MEDIDAS_P2,
@@ -508,7 +508,7 @@ const PERFIS = {
     config: { descansoS: 120, alturaCm: null, telaAcesa: true },
     semana: {
       1: { itens: ['Musculação: treino 1, pernas (hack)'], comida: COMIDA_MUSCULACAO },
-      2: { itens: ['Yoga 8h', 'Bike 9h', 'RPG 13h'], comida: {
+      2: { itens: ['Yoga 8h', 'Bike 9h', 'RPG 13h', 'Saltos em casa, 2 a 3 min'], comida: {
         prioridade: 'Comer antes das 8h e repor depois da bike. É o dia mais cheio: não pule o almoço antes do RPG.',
         passos: [
           ['7h15', 'Lanche leve', 'Fruta com iogurte, ou cuscuz com queijo'],
@@ -532,7 +532,7 @@ const PERFIS = {
           ['19h30', 'Jantar com proteína', 'Peixe ou omelete, arroz, feijão, legumes'],
         ] } },
       4: { itens: ['Musculação: treino 3, pernas (stiff)'], comida: COMIDA_MUSCULACAO },
-      5: { itens: ['Livre'], dica: 'Repõe um treino perdido na semana, ou descansa.', comida: COMIDA_DESCANSO },
+      5: { itens: ['Livre', 'Saltos em casa, 2 a 3 min'], dica: 'Repõe um treino perdido na semana, ou descansa. Saltos em casa: as mesmas séries do treino, no chão firme.', comida: COMIDA_DESCANSO },
       6: { itens: ['Corrida, 30 a 45 min'], dica: 'Ritmo de conversa na maior parte do tempo.', comida: {
         prioridade: 'Café leve antes da corrida e refeição com proteína depois.',
         passos: [
@@ -596,6 +596,7 @@ const GUIA = {
   'abdutora': { p: ['gluteos'], s: [], dica: 'Tronco firme. Abra as pernas com controle e volte devagar.' },
   'carregamento': { p: ['antebraco'], s: ['ombros', 'costas', 'abdomen'], dica: 'Um halter em cada mão, ombros baixos, passos curtos e firmes. Só com liberação da fisioterapia. Anote os metros e a carga de cada mão.' },
   'perdigueiro': { p: ['lombar', 'gluteos'], s: ['abdomen'], dica: 'Em quatro apoios, estenda uma perna para trás sem girar o quadril, mantendo as mãos no chão. O braço só entra com liberação da fisioterapia.' },
+  'extensao-lombar': { p: ['lombar', 'gluteos'], s: ['posteriores'], dica: 'Quadril apoiado na borda, braços cruzados no peito e pescoço neutro, olhando para o chão. Desça com a coluna reta e suba só até alinhar o corpo, sem arquear. Comece sem peso (anote 0 kg); quando 3 × 12 ficar fácil, segure uma anilha junto ao peito.' },
   'rotacao-cross': { p: ['ombros'], s: [], dica: 'Exercício de manguito orientado pela fisioterapia: cotovelo junto ao corpo, dobrado a 90°. Ajuste séries e carga em Config ao que foi prescrito.' },
 };
 // Para exercícios criados depois: reconhece pelo nome
